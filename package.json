@@ -1,0 +1,25 @@
+{
+  "name": "tree-sitter-roc",
+  "version": "1.0.0",
+  "description": "",
+  "main": "bindings/node",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lukewilliamboswell/tree-sitter-roc.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/lukewilliamboswell/tree-sitter-roc/issues"
+  },
+  "homepage": "https://github.com/lukewilliamboswell/tree-sitter-roc#readme",
+  "dependencies": {
+    "nan": "^2.17.0"
+  },
+  "devDependencies": {
+    "tree-sitter-cli": "^0.20.7"
+  }
+}
