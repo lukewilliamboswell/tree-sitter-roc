@@ -112,7 +112,7 @@ a=
           (identifier))
         (match_branch
           (list_pattern
-            (range_pattern)
+            (list_spread_pattern)
             (const
               (int)))
           (variable_expr
@@ -123,7 +123,7 @@ a=
               (char))
             (const
               (char))
-            (range_pattern))
+            (list_spread_pattern))
           (variable_expr
             (identifier)))))))
 

@@ -73,6 +73,8 @@ module.exports = grammar({
 		// Conflict between qualified type name (Module.Type) and nominal_methods start (.{)
 		[$.concrete_type],
 		[$._ability],
+		// Spread patterns in lists vs range pattern
+		[$.list_spread_pattern, $.range_pattern],
 	],
 
 	words: ($) => /\s+/,
@@ -134,9 +136,11 @@ module.exports = grammar({
 						repeat(
 							choice(
 								$.value_declaration,
+								$.var_declaration,
 								$.backpassing_expr,
 								$.dbg_expr,
 								$.bang_expr,
+								$.for_expr,
 							),
 						),
 					),
@@ -144,12 +148,12 @@ module.exports = grammar({
 					$._dedent,
 				),
 				seq(
-					repeat(choice($.value_declaration, $.backpassing_expr, $.dbg_expr)),
+					repeat(choice($.value_declaration, $.var_declaration, $.backpassing_expr, $.dbg_expr, $.for_expr)),
 					field("result", $._expr_inner),
 				),
 			),
 
-		/** 
+		/**
 		An expression body that should contain a newline after, like within a value declaration
 		*/
 		expr_body_terminal: ($) =>
@@ -161,9 +165,11 @@ module.exports = grammar({
 						repeat(
 							choice(
 								$.value_declaration,
+								$.var_declaration,
 								$.backpassing_expr,
 								$.dbg_expr,
 								$.bang_expr,
+								$.for_expr,
 							),
 						),
 					),
@@ -171,10 +177,42 @@ module.exports = grammar({
 					$._dedent,
 				),
 				seq(
-					repeat(choice($.value_declaration, $.backpassing_expr, $.dbg_expr)),
+					repeat(choice($.value_declaration, $.var_declaration, $.backpassing_expr, $.dbg_expr, $.for_expr)),
 					field("result", $._expr_inner),
 					choice($._dedent, $._end_newline),
 				),
+			),
+
+		// Mutable variable declaration: var $name = value
+		var_declaration: ($) =>
+			seq(
+				"var",
+				alias($.var_identifier, $.decl_left),
+				"=",
+				field("body", $._expr_inner),
+			),
+
+		// Mutable variable identifier: $name
+		var_identifier: ($) => /\$[a-z][0-9a-zA-Z_]*/,
+
+		// For loop: for item in collection { body }
+		for_expr: ($) =>
+			seq(
+				"for",
+				field("binding", $._atomic_pattern),
+				"in",
+				field("collection", $._expr_inner),
+				"{",
+				field("body", repeat(choice($.value_declaration, $.var_declaration, $.var_assignment))),
+				"}",
+			),
+
+		// Variable reassignment: $name = value
+		var_assignment: ($) =>
+			seq(
+				$.var_identifier,
+				"=",
+				field("value", $._expr_inner),
 			),
 
 		_atom_expr: ($) =>
@@ -193,9 +231,17 @@ module.exports = grammar({
 				$.list_expr,
 				$.bang_expr,
 				$.field_access_expr,
+				$.crash_expr,
+				$.var_identifier,
 			),
 
-		_call_or_atom: ($) => choice($.function_call_expr, $._atom_expr),
+		// Crash/unimplemented placeholder: ...
+		crash_expr: ($) => "...",
+
+		// Return expression for early returns
+		return_expr: ($) => seq("return", $._expr_inner),
+
+		_call_or_atom: ($) => choice($.function_call_expr, $.method_call_expr, $.pipe_call_expr, $._atom_expr),
 		_expr_inner: ($) =>
 			choice(
 				$.prefixed_expression,
@@ -203,6 +249,7 @@ module.exports = grammar({
 				$._call_or_atom,
 				$.import_expr,
 				$.import_file_expr,
+				$.return_expr,
 			),
 
 		// Prefix operators: ! (NOT) and - (negation)
@@ -216,14 +263,36 @@ module.exports = grammar({
 		variable_expr: ($) => alias($.long_identifier, $.variable_expr),
 		long_identifier: ($) => seq(repeat(seq($.module, ".")), $.identifier),
 		parenthesized_expr: ($) => seq("(", field("expression", $.expr_body), ")"),
+		// If expression - supports both:
+		// - if cond then expr else expr (old style with then keyword)
+		// - if cond expr else expr (modern style without then)
+		// - if cond { block } else { block }
 		if_expr: ($) =>
 			seq(
 				"if",
 				field("guard", $._expr_inner),
-				$.then,
-				repeat($.else_if),
-				$.else,
+				choice(
+					// Old style with explicit then
+					seq($.then, repeat($.else_if), $.else),
+					// Modern style - direct expression or block
+					seq(
+						field("then", choice($.block_body, $.expr_body)),
+						repeat($.modern_else_if),
+						$.modern_else,
+					),
+				),
 			),
+		modern_else_if: ($) =>
+			prec.left(
+				seq(
+					"else",
+					"if",
+					field("guard", $._expr_inner),
+					field("then", choice($.block_body, $.expr_body)),
+				),
+			),
+		modern_else: ($) =>
+			seq("else", field("else", choice($.block_body, $.expr_body))),
 		backpassing_expr: ($) =>
 			seq(
 				field("assignee", $._assigment_pattern),
@@ -239,6 +308,10 @@ module.exports = grammar({
 					$.parenthesized_expr,
 					$.record_expr,
 					$.record_update_expr,
+					$.method_call_expr,
+					$.const,
+					$.list_expr,
+					$.tuple_expr,
 				),
 			),
 		field_access_expr: ($) =>
@@ -246,6 +319,35 @@ module.exports = grammar({
 				seq(
 					field("target", $._field_access_start),
 					repeat1(seq(".", $.identifier)),
+				),
+			),
+
+		// Method call with parentheses: expr.method() or expr.method(args)
+		method_call_expr: ($) =>
+			prec.left(
+				PREC.FUNC,
+				seq(
+					field("target", $._field_access_start),
+					repeat(seq(".", $.identifier)),
+					".",
+					field("method", $.identifier),
+					"(",
+					optional(sep1_tail($._expr_inner, ",")),
+					")",
+				),
+			),
+
+		// Pipe call syntax: expr->function(args) - calls function with expr as first arg
+		pipe_call_expr: ($) =>
+			prec.left(
+				PREC.FUNC,
+				seq(
+					field("target", $._field_access_start),
+					"->",
+					field("function", $.identifier),
+					"(",
+					optional(sep1_tail($._expr_inner, ",")),
+					")",
 				),
 			),
 
@@ -304,7 +406,15 @@ module.exports = grammar({
 		tag_expr: ($) =>
 			prec.left(
 				PREC.TAG,
-				seq(choice($.opaque_tag, $.tag), repeat($._atom_expr)),
+				seq(
+					choice(
+						$.opaque_tag,
+						$.tag,
+						// Qualified tag: Module.Tag
+						seq($.module, ".", $.tag),
+					),
+					repeat($._atom_expr),
+				),
 			),
 		anon_fun_expr: ($) =>
 			prec.left(
@@ -319,14 +429,32 @@ module.exports = grammar({
 
 		// Block body with curly braces: { declarations... result }
 		block_body: ($) =>
-			seq(
-				"{",
-				field(
-					"declarations",
-					repeat($.block_declaration),
+			prec(
+				20, // Higher precedence than record patterns
+				seq(
+					"{",
+					field(
+						"statements",
+						repeat(choice(
+							$.block_declaration,
+							$.var_declaration,
+							$.for_expr,
+							$.var_assignment,
+							$.expect,
+							// Allow effectful expressions as statements
+							$.block_statement,
+						)),
+					),
+					field("result", $._expr_inner),
+					"}",
 				),
-				field("result", $._expr_inner),
-				"}",
+			),
+
+		// Effectful expression as a statement in a block (ends with ! or is a function call)
+		block_statement: ($) =>
+			prec.dynamic(
+				-1, // Lower precedence than declarations
+				$._expr_inner,
 			),
 
 		// Simplified value declaration for use inside block bodies
@@ -347,10 +475,15 @@ module.exports = grammar({
 		record_expr: ($) =>
 			seq(
 				"{",
+				optional($.record_update_ext),
 				sep_tail(choice($.record_field_expr, $.record_field_builder), ","),
 				"}",
 			),
 
+		// Modern record update prefix: { ..person, field: value }
+		record_update_ext: ($) => seq("..", $._expr_inner, ","),
+
+		// Old style record update: { person & field: value }
 		record_update_expr: ($) =>
 			seq("{", $.identifier, "&", sep1_tail($.record_field_expr, ","), "}"),
 
@@ -452,8 +585,16 @@ module.exports = grammar({
 		list_pattern: ($) =>
 			choice(
 				seq("[", "]"),
-				seq("[", $._atomic_pattern, repeat(seq(",", $._atomic_pattern)), "]"),
+				seq(
+					"[",
+					sep1_tail(choice($._atomic_pattern, $.list_spread_pattern), ","),
+					"]",
+				),
 			),
+
+		// Spread pattern in lists: [.., x] or [x, ..] or [.. as rest]
+		list_spread_pattern: ($) =>
+			prec(10, seq("..", optional(seq("as", $.identifier)))),
 
 		record_pattern: ($) =>
 			seq(
@@ -774,8 +915,22 @@ module.exports = grammar({
 				seq(
 					$._type_annotation_no_fun,
 					alias("where", $.where),
-					sep1($._implements_body, ","),
+					choice(
+						// Modern bracket syntax: where [a.method : Type]
+						seq("[", sep1_tail($.where_constraint, ","), "]"),
+						// Old syntax: where a implements Ability
+						sep1($._implements_body, ","),
+					),
 				),
+			),
+		// Modern where constraint: a.method : a -> Str
+		where_constraint: ($) =>
+			seq(
+				$.bound_variable,
+				".",
+				$.identifier,
+				":",
+				$._type_annotation,
 			),
 		_implements_body: ($) => seq($.identifier, $.implements, $.ability_chain),
 
@@ -809,14 +964,27 @@ module.exports = grammar({
 		tags_type: ($) => seq("[", optional($._tags_only), "]"),
 
 		_tags_only: ($) =>
-			seq(
-				// optional(T('SameIndent')),
-				$.apply_type,
-				// optional(T('SameIndent')),
-				repeat(seq(",", $.apply_type)),
-				optional(","),
-				// optional(T('SameIndent'))
+			choice(
+				// Open tag union: [A, B, ..] or [A, B, ..others]
+				seq(
+					$.apply_type,
+					repeat(seq(",", $.apply_type)),
+					",",
+					$.open_tag_union,
+				),
+				// Closed tag union: [A, B, C]
+				seq(
+					$.apply_type,
+					repeat(seq(",", $.apply_type)),
+					optional(","),
+				),
+				// Just open: [..]
+				$.open_tag_union,
 			),
+
+		// Open tag union marker: .. or ..typevar
+		open_tag_union: ($) =>
+			seq("..", optional($.bound_variable)),
 
 		type_variable: ($) => choice("_", $.bound_variable),
 
@@ -980,9 +1148,10 @@ module.exports = grammar({
 		natural: ($) => token(/[0-9]+(nat)/),
 
 		float: ($) => token(seq(/[0-9]+(\.)?[0-9]*(e-?[0-9]*)?((f32)|(f64))?/)),
-		_hex_int: ($) => token(seq(/0[x][0-9abcdef]*/)),
+		_hex_int: ($) => token(seq(/0[x][0-9a-fA-F][0-9a-fA-F_]*/)),
+		_octal_int: ($) => token(seq(/0[o][0-7][0-7_]*/)),
 		_binary_int: ($) => token(seq(/0[b]/, /[01][01_]*/)),
-		xint: ($) => choice($._binary_int, $._hex_int),
+		xint: ($) => choice($._binary_int, $._octal_int, $._hex_int),
 
 		//PRIMATIVES
 		back_arrow: ($) => "<-",

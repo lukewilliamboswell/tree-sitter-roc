@@ -88,8 +88,6 @@
 
 [
 (implements)
-(when)
-(is)
 "match"
 "as"
 (to)
@@ -160,8 +158,6 @@
 
 (function_call_expr
   caller: (field_access_expr (identifier)@function .))
-
-(bin_op_expr (operator "|>")@operator(variable_expr(identifier)@function))
 
 ;----function arguments----
 

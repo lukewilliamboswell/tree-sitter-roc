@@ -81,7 +81,7 @@ bfs = |a, b, [head, .. as tail]| a b head tail
           (list_pattern
             (identifier_pattern
               (identifier))
-            (range_pattern
+            (list_spread_pattern
               (identifier))))
         (expr_body
           (function_call_expr
