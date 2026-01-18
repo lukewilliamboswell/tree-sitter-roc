@@ -1,0 +1,172 @@
+================================================================================
+match_simple
+================================================================================
+result = match color {
+    Red => "red"
+    Green => "green"
+    Blue => "blue"
+}
+--------------------------------------------------------------------------------
+
+(file
+  (value_declaration
+    (decl_left
+      (identifier_pattern
+        (identifier)))
+    (expr_body
+      (match_expr
+        (variable_expr
+          (identifier))
+        (match_branch
+          (tag_pattern
+            (tag))
+          (const
+            (string)))
+        (match_branch
+          (tag_pattern
+            (tag))
+          (const
+            (string)))
+        (match_branch
+          (tag_pattern
+            (tag))
+          (const
+            (string)))))))
+
+================================================================================
+match_with_wildcard
+================================================================================
+x = match val {
+    Some v => v
+    _ => 0
+}
+--------------------------------------------------------------------------------
+
+(file
+  (value_declaration
+    (decl_left
+      (identifier_pattern
+        (identifier)))
+    (expr_body
+      (match_expr
+        (variable_expr
+          (identifier))
+        (match_branch
+          (tag_pattern
+            (tag)
+            (identifier_pattern
+              (identifier)))
+          (variable_expr
+            (identifier)))
+        (match_branch
+          (wildcard_pattern)
+          (const
+            (int)))))))
+
+================================================================================
+match_list_patterns
+================================================================================
+len = match lst {
+    [] => 0
+    [x] => 1
+    [_, _] => 2
+    _ => 99
+}
+--------------------------------------------------------------------------------
+
+(file
+  (value_declaration
+    (decl_left
+      (identifier_pattern
+        (identifier)))
+    (expr_body
+      (match_expr
+        (variable_expr
+          (identifier))
+        (match_branch
+          (list_pattern)
+          (const
+            (int)))
+        (match_branch
+          (list_pattern
+            (identifier_pattern
+              (identifier)))
+          (const
+            (int)))
+        (match_branch
+          (list_pattern
+            (wildcard_pattern)
+            (wildcard_pattern))
+          (const
+            (int)))
+        (match_branch
+          (wildcard_pattern)
+          (const
+            (int)))))))
+
+================================================================================
+match_string_literal
+================================================================================
+greet = match name {
+    "Alice" => "Hello Alice!"
+    "Bob" => "Hey Bob!"
+    _ => "Hello stranger!"
+}
+--------------------------------------------------------------------------------
+
+(file
+  (value_declaration
+    (decl_left
+      (identifier_pattern
+        (identifier)))
+    (expr_body
+      (match_expr
+        (variable_expr
+          (identifier))
+        (match_branch
+          (const_pattern
+            (string))
+          (const
+            (string)))
+        (match_branch
+          (const_pattern
+            (string))
+          (const
+            (string)))
+        (match_branch
+          (wildcard_pattern)
+          (const
+            (string)))))))
+
+================================================================================
+match_in_lambda
+================================================================================
+foo = |x| match x {
+    Red => 1
+    _ => 0
+}
+--------------------------------------------------------------------------------
+
+(file
+  (value_declaration
+    (decl_left
+      (identifier_pattern
+        (identifier)))
+    (expr_body
+      (anon_fun_expr
+        (argument_patterns
+          (identifier_pattern
+            (identifier)))
+        (expr_body
+          (match_expr
+            (variable_expr
+              (identifier))
+            (match_branch
+              (tag_pattern
+                (tag))
+              (const
+                (int)))
+            (match_branch
+              (wildcard_pattern)
+              (const
+                (int)))))))))

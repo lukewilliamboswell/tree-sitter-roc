@@ -175,6 +175,7 @@ module.exports = grammar({
 				$.record_update_expr,
 				$.if_expr,
 				$.when_is_expr,
+				$.match_expr,
 				$.variable_expr,
 				$.parenthesized_expr,
 				$.operator_as_function_expr,
@@ -312,6 +313,25 @@ module.exports = grammar({
 				//TODO: evaluate what options can got here
 				field("expr", $.expr_body),
 			),
+
+		// Modern match expression: match expr { pattern => result ... }
+		match_expr: ($) =>
+			seq(
+				"match",
+				field("target", $._expr_inner),
+				"{",
+				repeat($.match_branch),
+				"}",
+			),
+
+		match_branch: ($) =>
+			seq(
+				field("pattern", $._pattern),
+				optional(seq("if", alias($._expr_inner, $.guard))),
+				"=>",
+				field("expr", $._expr_inner),
+			),
+
 		tag_expr: ($) =>
 			prec.left(
 				PREC.TAG,

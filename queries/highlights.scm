@@ -89,9 +89,13 @@
 (implements)
 (when)
 (is)
+"match"
 "as"
 (to)
 ] @keyword.control.roc
+
+; Match expression fat arrow
+(match_branch "=>" @punctuation.delimiter.structural)
 
 ;----headers-----
 
