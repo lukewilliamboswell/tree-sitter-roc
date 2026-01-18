@@ -4300,30 +4300,18 @@
       "type": "IMMEDIATE_TOKEN",
       "content": {
         "type": "PATTERN",
-        "value": "\\\\([\\\\\"\\'ntbrafv]|(\\$\\())"
+        "value": "\\\\([\\\\\"\\'ntbrafv]|u\\([0-9a-fA-F]+\\))"
       }
     },
     "interpolation_char": {
       "type": "SEQ",
       "members": [
         {
-          "type": "CHOICE",
-          "members": [
-            {
-              "type": "IMMEDIATE_TOKEN",
-              "content": {
-                "type": "PATTERN",
-                "value": "\\\\\\("
-              }
-            },
-            {
-              "type": "IMMEDIATE_TOKEN",
-              "content": {
-                "type": "PATTERN",
-                "value": "\\$\\("
-              }
-            }
-          ]
+          "type": "IMMEDIATE_TOKEN",
+          "content": {
+            "type": "PATTERN",
+            "value": "\\$\\{"
+          }
         },
         {
           "type": "SYMBOL",
@@ -4331,7 +4319,7 @@
         },
         {
           "type": "STRING",
-          "value": ")"
+          "value": "}"
         }
       ]
     },

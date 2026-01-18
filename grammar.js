@@ -841,15 +841,14 @@ module.exports = grammar({
 				'"""',
 			),
 
-		escape_char: ($) => imm(/\\([\\"\'ntbrafv]|(\$\())/),
+		// Escape sequences including unicode: \n, \t, \u(XXXX), etc.
+		escape_char: ($) => imm(/\\([\\"\'ntbrafv]|u\([0-9a-fA-F]+\))/),
+		// String interpolation: ${expr}
 		interpolation_char: ($) =>
 			seq(
-				choice(
-					imm(/\\\(/), //This is the old inderpolation syntax
-					imm(/\$\(/), //This is the new interpolation syntax
-				),
+				imm(/\$\{/),
 				$._expr_inner,
-				")",
+				"}",
 			),
 		_simple_string_char: ($) => /[^\t\r\u0008\a\f\v\\"]/,
 		_simple_char_char: ($) => imm(/[^\n\t\r\u0008\a\f\v'\\]/),
