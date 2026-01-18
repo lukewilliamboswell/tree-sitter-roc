@@ -2363,10 +2363,6 @@
       "type": "CHOICE",
       "members": [
         {
-          "type": "STRING",
-          "value": "null"
-        },
-        {
           "type": "ALIAS",
           "content": {
             "type": "STRING",
@@ -5760,10 +5756,6 @@
       "named": true,
       "value": "module"
     },
-    "backslash": {
-      "type": "STRING",
-      "value": "\\"
-    },
     "doc_comment": {
       "type": "TOKEN",
       "content": {
@@ -6005,10 +5997,6 @@
     {
       "type": "STRING",
       "value": "}"
-    },
-    {
-      "type": "STRING",
-      "value": "except"
     }
   ],
   "inline": [

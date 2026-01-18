@@ -314,7 +314,7 @@
     "fields": {},
     "children": {
       "multiple": true,
-      "required": false,
+      "required": true,
       "types": [
         {
           "type": "as_pattern",
@@ -1989,10 +1989,6 @@
           {
             "type": "list_pattern",
             "named": true
-          },
-          {
-            "type": "null",
-            "named": false
           },
           {
             "type": "paren_pattern",
@@ -5903,7 +5899,7 @@
     "fields": {},
     "children": {
       "multiple": true,
-      "required": false,
+      "required": true,
       "types": [
         {
           "type": "as_pattern",
@@ -6891,19 +6887,15 @@
   },
   {
     "type": "module",
-    "named": false
+    "named": true
   },
   {
     "type": "module",
-    "named": true
+    "named": false
   },
   {
     "type": "natural",
     "named": true
-  },
-  {
-    "type": "null",
-    "named": false
   },
   {
     "type": "opaque_tag",

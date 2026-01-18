@@ -14,7 +14,7 @@ module.exports = grammar({
 	name: "roc",
 
 	// The external scanner (scanner.cc) allows us to inject "dummy" tokens into the grammar.
-	// These tokens are used to track the indentation-based scoping used in F#
+	// These tokens are used to track the indentation-based scoping used in Roc
 
 	externals: ($) => [
 		$._newline,
@@ -34,7 +34,6 @@ module.exports = grammar({
 		"]",
 		")",
 		"}",
-		"except",
 	],
 
 	extras: ($) => [
@@ -76,8 +75,6 @@ module.exports = grammar({
 		// Spread patterns in lists vs range pattern
 		[$.list_spread_pattern, $.range_pattern],
 	],
-
-	words: ($) => /\s+/,
 
 	inline: ($) => [
 		$._type_annotation_paren_fun,
@@ -510,7 +507,6 @@ module.exports = grammar({
 		// Pattern rules (BEGIN)
 		_pattern: ($) =>
 			choice(
-				// alias("null", $.null_pattern),
 				alias("_", $.wildcard_pattern),
 				alias($.const, $.const_pattern),
 				$.identifier_pattern,
@@ -560,7 +556,6 @@ module.exports = grammar({
 			seq($._atomic_pattern, repeat(seq(",", $._atomic_pattern))),
 		_atomic_pattern: ($) =>
 			choice(
-				"null",
 				alias("_", $.wildcard_pattern),
 				$.const,
 				$.identifier_pattern,
@@ -1166,7 +1161,6 @@ module.exports = grammar({
 		tag: ($) => alias($._upper_identifier, $.tag),
 		opaque_tag: ($) => /@[A-Z][0-9a-zA-Z_]*/,
 		module: ($) => alias($._upper_identifier, $.module),
-		backslash: ($) => "\\",
 
 		doc_comment: ($) => token(prec(-1, /##[^\n]*/)),
 		line_comment: ($) => token(prec(-1, /#[^\n]*/)),
