@@ -126,12 +126,9 @@ run_test "Parenthesized type" 'x : List(Int)'
 run_test "Simple nominal type alias" 'Color :: [Red, Green, Blue]'
 run_test "Simple opaque type" 'Color := [Red, Green, Blue]'
 run_test "Opaque with methods empty" 'Color := [Red].{}'
-# Note: combining annotation + implementation in method block has grammar issue
-# (parser sees Str\nto_str as type continuation) - testing separately for now
-run_test "Opaque with method annotation" 'Color := [Red].{
+# Full opaque with annotation + implementation in method block
+run_test "Opaque with method" 'Color := [Red].{
   to_str : Color -> Str
-}'
-run_test "Opaque with method impl" 'Color := [Red].{
   to_str = |c| "red"
 }'
 

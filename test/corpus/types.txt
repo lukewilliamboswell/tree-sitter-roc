@@ -339,7 +339,7 @@ types_alias
 ================================================================================
 A:A b
 a:A->B
-a=\a->b
+a=|a| b
 --------------------------------------------------------------------------------
 
 (file
@@ -366,11 +366,9 @@ a=\a->b
         (identifier)))
     (expr_body
       (anon_fun_expr
-        (backslash)
         (argument_patterns
           (identifier_pattern
             (identifier)))
-        (arrow)
         (expr_body
           (variable_expr
             (identifier)))))))

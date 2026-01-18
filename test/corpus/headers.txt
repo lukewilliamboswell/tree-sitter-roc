@@ -6,8 +6,7 @@ app [main!] { pf: platform "https://basic-cli" }
 
 import pf.Stdout
 
-main! = \_args ->
-    Stdout.line!("Hello world")
+main! = |_args| Stdout.line!("Hello world")
 ---
 
 (file
@@ -27,11 +26,9 @@ main! = \_args ->
         (identifier)))
     (expr_body
       (anon_fun_expr
-        (backslash)
         (argument_patterns
           (identifier_pattern
             (identifier)))
-        (arrow)
         (expr_body
           (function_call_expr
             (variable_expr
@@ -114,8 +111,7 @@ CC : AA.BB
 
 ## com
 a : A -> TASK (List Path) [DirReadErr Path ReadErr]
-a = \path ->
-  a
+a = |path| path
 
 --------------------------------------------------------------------------------
 
@@ -206,11 +202,9 @@ a = \path ->
         (identifier)))
     (expr_body
       (anon_fun_expr
-        (backslash)
         (argument_patterns
           (identifier_pattern
             (identifier)))
-        (arrow)
         (expr_body
           (variable_expr
             (identifier)))))))

@@ -70,6 +70,9 @@ module.exports = grammar({
 		[$._method_type_annotation_no_fun, $._type_annotation_no_fun],
 		[$._method_type_annotation, $._method_type_annotation_paren_fun],
 		[$.method_apply_type, $.apply_type],
+		// Conflict between qualified type name (Module.Type) and nominal_methods start (.{)
+		[$.concrete_type],
+		[$._ability],
 	],
 
 	words: ($) => /\s+/,
@@ -615,7 +618,8 @@ module.exports = grammar({
 		// Method block for nominal types: `.{ method_def ... }`
 		nominal_methods: ($) =>
 			seq(
-				".{",
+				".",
+				token.immediate("{"),
 				repeat($._method_member),
 				"}",
 			),
@@ -631,6 +635,7 @@ module.exports = grammar({
 		method_annotation: ($) =>
 			seq(
 				alias($.annotation_pre_colon, $.annotation_pre_colon),
+				":",
 				$._method_type_annotation,
 			),
 
@@ -691,8 +696,9 @@ module.exports = grammar({
 			),
 
 		// Apply type that only allows parenthesized args (no space-separated)
+		// High precedence to win over regular apply_type in method contexts
 		method_apply_type: ($) =>
-			prec.right(seq($.concrete_type, optional($.method_paren_type_args))),
+			prec.right(200, seq($.concrete_type, optional($.method_paren_type_args))),
 
 		method_paren_type_args: ($) =>
 			prec.dynamic(
