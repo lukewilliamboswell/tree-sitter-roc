@@ -1747,7 +1747,7 @@
           "named": true
         },
         {
-          "type": "opaque_type_def",
+          "type": "nominal_type_def",
           "named": true
         },
         {
@@ -3127,7 +3127,7 @@
     }
   },
   {
-    "type": "opaque_type_def",
+    "type": "nominal_type_def",
     "named": true,
     "fields": {},
     "children": {
@@ -3144,6 +3144,10 @@
         },
         {
           "type": "colon_equals",
+          "named": true
+        },
+        {
+          "type": "double_colon",
           "named": true
         },
         {
@@ -5212,6 +5216,10 @@
   },
   {
     "type": "doc_comment",
+    "named": true
+  },
+  {
+    "type": "double_colon",
     "named": true
   },
   {

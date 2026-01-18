@@ -56,7 +56,7 @@
         },
         {
           "type": "SYMBOL",
-          "name": "opaque_type_def"
+          "name": "nominal_type_def"
         },
         {
           "type": "SYMBOL",
@@ -3303,7 +3303,7 @@
         }
       ]
     },
-    "opaque_type_def": {
+    "nominal_type_def": {
       "type": "SEQ",
       "members": [
         {
@@ -3311,13 +3311,27 @@
           "name": "apply_type"
         },
         {
-          "type": "ALIAS",
-          "content": {
-            "type": "STRING",
-            "value": ":="
-          },
-          "named": true,
-          "value": "colon_equals"
+          "type": "CHOICE",
+          "members": [
+            {
+              "type": "ALIAS",
+              "content": {
+                "type": "STRING",
+                "value": "::"
+              },
+              "named": true,
+              "value": "double_colon"
+            },
+            {
+              "type": "ALIAS",
+              "content": {
+                "type": "STRING",
+                "value": ":="
+              },
+              "named": true,
+              "value": "colon_equals"
+            }
+          ]
         },
         {
           "type": "SYMBOL",

@@ -10,7 +10,7 @@
 ;; opinion: typedefs cross into documentation and should be
 ;; highlighted differently from normal code
 
-(opaque_type_def (_ (concrete_type) @type.definition))
+(nominal_type_def (_ (concrete_type) @type.definition))
 (function_type (arrow) @punctuation.delimiter.structural.typedef)
 (function_type (effect_arrow) @punctuation.delimiter.structural.typedef)
 

@@ -94,7 +94,7 @@ module.exports = grammar({
 			choice(
 				$.annotation_type_def,
 				$.alias_type_def,
-				$.opaque_type_def,
+				$.nominal_type_def,
 				$.expect,
 				$.implements_definition,
 				$.value_declaration,
@@ -642,8 +642,13 @@ module.exports = grammar({
 			seq($.annotation_pre_colon, ":", $._type_annotation),
 		alias_type_def: ($) =>
 			seq($.apply_type, ":", field("body", $._type_annotation)),
-		opaque_type_def: ($) =>
-			seq($.apply_type, alias(":=", $.colon_equals), $._type_annotation),
+		// Nominal types: `Name :: Type` (simple) or `Name := Type` (with methods)
+		nominal_type_def: ($) =>
+			seq(
+				$.apply_type,
+				choice(alias("::", $.double_colon), alias(":=", $.colon_equals)),
+				$._type_annotation,
+			),
 
 		_type_annotation: ($) =>
 			prec.left(
