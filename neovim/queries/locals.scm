@@ -6,7 +6,7 @@
 
 ; (argument_patterns(long_identifier)@local.definition)
 (exposes_list
-  (ident) @local.reference)
+  (identifier) @local.reference)
 
 (import_expr(as)(module)@local.definition)
 
@@ -33,6 +33,8 @@
 (identifier_pattern
   (identifier) @local.definition)
 
+(when_is_branch pattern: (_ (identifier_pattern (identifier) @local.definition)))
+(spread_pattern (identifier) @local.definition)
 
 (identifier) @local.reference
 

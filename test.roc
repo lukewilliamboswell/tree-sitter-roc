@@ -1,256 +1,101 @@
-## The Graph interface represents a [graph](https://en.wikipedia.org/wiki/Graph_(discrete_mathematics))
-## using an [adjacency list](https://en.wikipedia.org/wiki/Adjacency_list)
-## and exposes functions for working with graphs, such as creating one from a list and
-## performing a depth-first or breadth-first search.
-module
-    [
-        Graph,
-        fromList,
-        fromDict,
-        dfs,
-        bfs,
-    ]
-import OtherTest
+app [main!] {
+    cli: platform "https://github.com/roc-lang/basic-cli/releases/download/0.19.0/Hj-J_zxz7V9YurCSTFcFdu6cQJie4guzsPMUi5kBYUk.tar.br",
+}
 
-rangeTest = \ ->
-    myList = [Foo, Bar, Baz]
+import cli.Stdout
+import cli.Arg exposing [Arg,_weird,effctful!]
+import cli.Env
+import cli.Http
+import cli.Dir
+import cli.Utc exposing [Utc]
+import cli.Path exposing [Path as Path,]
+import cli.Path as Path
 
-    when myList is
-        [] -> 0
-        [Foo, ..] -> 1
-        [_, ..] -> 2
-        [Foo, Bar, ..] -> 3
-        [Foo, Bar, Baz] -> 4
-        [Foo, a, ..] -> 5
-        [.., Foo] -> 7
-        [A, B, .., C, D] -> 8
-        [head, .. as tail] -> 9
-a=a!|>hi
-## Graph type representing a graph as a dictionary of adjacency lists,
-## where each key is a vertex and each value is a list of its adjacent vertices.
-Graph a := Dict a (List a) where a implements Eq & Something
+main! : List Arg,_ => Result {} _
+main! = |args,_|
 
-foo : (U8, U30) #U30 is deliberately invalid
-bar : { test : Str, here : Dec }
-baz : (a -> Bool), a, Graph a -> Result a [NotFound]
+    # Get time since [Unix Epoch](https://en.wikipedia.org/wiki/Unix_time)
+    start_time : Utc
+    start_time = Utc.now!({})
 
-## Create a Graph from an adjacency list.
-# fromList : List (a, List a) -> Graph a
-fromList = \adjacencyList ->
-    emptyDict = Dict.withCapacity (List.len adjacencyList)
-
-    update = \dict, (vertex, edges) ->
-        Dict.insert dict vertex edges
-
-    List.walk adjacencyList emptyDict update
-    |> @Graph
-
-## Create a Graph from an adjacency list.
-fromDict : Dict a (List a) -> Graph a
-fromDict = @Graph
-
-## Perform a depth-first search on a graph to find a target vertex.
-## [Algorithm animation](https://en.wikipedia.org/wiki/Depth-first_search#/media/File:Depth-First-Search.gif)
-##
-## - `isTarget` : A function that returns true if a vertex is the target.
-## - `root`     : The starting vertex for the search.
-## - `graph`    : The graph to perform the search on.
-dfs : (a -> Bool), a, Graph a -> Result a [NotFound]
-dfs = \isTarget, root, @Graph graph ->
-    dfsHelper isTarget [root] (Set.empty {}) graph
-
-# A helper function for performing the depth-first search.
-#
-# `isTarget` : A function that returns true if a vertex is the target.
-# `stack`    : A List of vertices to visit.
-# `visited`  : A Set of visited vertices.
-# `graph`    : The graph to perform the search on.
-dfsHelper : (a -> Bool), List a, Set a, Dict a (List a) -> Result a [NotFound]
-dfsHelper = \isTarget, stack, visited, graph ->
-    when stack is
-        [] ->
-            Err NotFound
-
-        [.., current] ->
-            rest = List.dropLast stack 1
-
-            if isTarget current then
-                Ok current
-            else if Set.contains visited current then
-                dfsHelper isTarget rest visited graph
+    a=effectful!(hi)
+    # Read the HELLO environment variable
+    hello_env : Str
+    hello_env =
+        read_env_var!("HELLO")?
+        |> |env_var_content|
+            if Str.is_empty(env_var_content) then
+                "was empty"
             else
-                newVisited = Set.insert visited current
+                "was set to ${env_var_content}"
 
-                when Dict.get graph current is
-                    Ok neighbors ->
-                        # filter out all visited neighbors
-                        filtered =
-                            neighbors
-                            |> List.keepIf (\n -> !(Set.contains newVisited n))
-                            |> List.reverse
+    Stdout.line!("HELLO env var ${hello_env}")?
 
-                        # newly explored nodes are added to LIFO stack
-                        newStack = List.concat rest filtered
+    # Read command line arguments
+    { url, output_path } = parse_args!(args)?
 
-                        dfsHelper isTarget newStack newVisited graph
+    Stdout.line!("Fetching content from ${url}...")?
 
-                    Err KeyNotFound ->
-                        dfsHelper isTarget rest newVisited graph
+    # Fetch the provided url using HTTP
+    html_str : Str
+    html_str = fetch_html!(url)?
 
-## Perform a breadth-first search on a graph to find a target vertex.
-## [Algorithm animation](https://en.wikipedia.org/wiki/Breadth-first_search#/media/File:Animated_BFS.gif)
-##
-## - `isTarget` : A function that returns true if a vertex is the target.
-## - `root`     : The starting vertex for the search.
-## - `graph`    : The graph to perform the search on.
-bfs : (a -> Bool), a, Graph a -> Result a [NotFound]
-bfs = \isTarget, root, @Graph graph ->
-    bfsHelper isTarget [root] (Set.single root) graph
+    Stdout.line!("Saving url HTML to ${Path.display(output_path)}...")?
 
-# A helper function for performing the breadth-first search.
-#
-# `isTarget` : A function that returns true if a vertex is the target.
-# `queue`    : A List of vertices to visit.
-# `seen`  : A Set of all seen vertices.
-# `graph`    : The graph to perform the search on.
-bfsHelper : (a -> Bool), List a, Set a, Dict a (List a) -> Result a [NotFound]
-bfsHelper = \isTarget, queue, seen, graph ->
-    when queue is
-        [] ->
-            Err NotFound
+    # Write HTML string to a file
+    Result.map_err(
+        Path.write_utf8!(html_str, output_path),
+        |_| FailedToWriteFile("Failed to write to file ${Path.display(output_path)}, usage: ${usage}"),
+    )?
 
-        [current, ..] ->
-            rest = List.dropFirst queue 1
+    test={a : b, c: d  }
+    # Print contents of current working directory
+    list_cwd_contents!({})?
 
-            if isTarget current then
-                Ok current
-            else
-                when Dict.get graph current is
-                    Ok neighbors ->
-                        # filter out all seen neighbors
-                        filtered = List.keepIf neighbors (\n -> !(Set.contains seen n))
+    end_time : Utc
+    end_time = Utc.now!({})
 
-                        # newly explored nodes are added to the FIFO queue
-                        newQueue = List.concat rest filtered
+    run_duration = Utc.delta_as_millis(start_time, end_time)
 
-                        # the new nodes are also added to the seen set
-                        newSeen = List.walk filtered seen Set.insert
+    Stdout.line!("Run time: ${Num.to_str(run_duration)} ms")?
 
-                        bfsHelper isTarget newQueue newSeen graph
+    Stdout.line!("Done")?
 
-                    Err KeyNotFound ->
-                        bfsHelper isTarget rest seen graph
+    Ok({})
 
-# Test DFS with multiple paths
-expect
-    actual = dfs (\v -> Str.startsWith v "C") "A" testGraphMultipath
-    expected = Ok "Ccorrect"
+parse_args! : List Arg => Result { url : Str, output_path : Path } _
+parse_args! = |args|
+    when List.map(args, Arg.display) is
+        [_, first, second, ..] ->
+            Ok({ url: first, output_path: Path.from_str(second) })
 
-    actual == expected
+        _ ->
+            Err(FailedToReadArgs("Failed to read command line arguments, usage: ${usage}"))
 
-# Test BFS with multiple paths
-expect
-    actual = bfs (\v -> Str.startsWith v "C") "A" testGraphMultipath
-    expected = Ok "Ccorrect"
+read_env_var! : Str => Result Str []
+read_env_var! = |env_var_name|
+    when Env.var!(env_var_name) is
+        Ok(env_var_str) if !Str.is_empty(env_var_str) -> Ok(env_var_str)
+        _ -> Ok("")
 
-    actual == expected
+fetch_html! : Str => Result Str _
+fetch_html! = |url|
+    Http.get_utf8!(url)
+    |> Result.map_err(|err| FailedToFetchHtml("Failed to fetch URL ${Inspect.to_str(err)}, usage: ${usage}"))
 
-# Test DFS
-expect
-    actual = dfs (\v -> Str.startsWith v "F") "A" testGraphSmall
-    expected = Ok "F-DFS"
+# effects need to be functions so we use the empty input type `{}`
+list_cwd_contents! : {} => Result {} _
+list_cwd_contents! = |_|
 
-    actual == expected
+    dir_contents =
+        Result.map_err(
+            Dir.list!("."),
+            |_| FailedToListCwd("Failed to list contents of current directory, usage: ${usage}"),
+        )?
 
-## Test BFS
-expect
-    actual = bfs (\v -> Str.startsWith v "F") "A" testGraphSmall
-    expected = Ok "F-BFS"
+    contents_str =
+        dir_contents
+        |> List.map(Path.display)
+        |> Str.join_with(",")
 
-    actual == expected
-
-# Test NotFound DFS
-expect
-    actual = dfs (\v -> v == "not a node") "A" testGraphSmall
-    expected = Err NotFound
-
-    actual == expected
-
-# Test NotFound BFS
-expect
-    actual = dfs (\v -> v == "not a node") "A" testGraphSmall
-    expected = Err NotFound
-
-    actual == expected
-
-# Test DFS large
-expect
-    actual = dfs (\v -> v == "AE") "A" testGraphLarge
-    expected = Ok "AE"
-
-    actual == expected
-
-## Test BFS large
-expect
-    actual = bfs (\v -> v == "AE") "A" testGraphLarge
-    expected = Ok "AE"
-
-    actual == expected
-
-# Some helpers for testing
-testGraphSmall =
-    fromList
-        [
-            ("A", ["B", "C", "F-BFS"]),
-            ("B", ["D", "E"]),
-            ("C", []),
-            ("D", []),
-            ("E", ["F-DFS"]),
-            ("F-BFS", []),
-            ("F-DFS", []),
-        ]
-
-testGraphLarge =
-    fromList
-        [
-            ("A", ["B", "C", "D"]),
-            ("B", ["E", "F", "G"]),
-            ("C", ["H", "I", "J"]),
-            ("D", ["K", "L", "M"]),
-            ("E", ["N", "O"]),
-            ("F", ["P", "Q"]),
-            ("G", ["R", "S"]),
-            ("H", ["T", "U"]),
-            ("I", ["V", "W"]),
-            ("J", ["X", "Y"]),
-            ("K", ["Z", "AA"]),
-            ("L", ["AB", "AC"]),
-            ("M", ["AD", "AE"]),
-            ("N", []),
-            ("O", []),
-            ("P", []),
-            ("Q", []),
-            ("R", []),
-            ("S", []),
-            ("T", []),
-            ("U", []),
-            ("V", []),
-            ("W", []),
-            ("X", []),
-            ("Y", []),
-            ("Z", []),
-            ("AA", []),
-            ("AB", []),
-            ("AC", []),
-            ("AD", []),
-            ("AE", []),
-        ]
-
-testGraphMultipath =
-    fromList
-        [
-            ("A", ["B", "Ccorrect"]),
-            ("B", ["Ccorrect", "Cwrong"]),
-            ("Ccorrect", []),
-            ("Cwrong", []),
-        ]
+    Stdout.line!("Contents of current directory: ${contents_str}")
