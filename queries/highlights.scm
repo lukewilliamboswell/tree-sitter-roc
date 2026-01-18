@@ -12,6 +12,7 @@
 
 (opaque_type_def (_ (concrete_type) @type.definition))
 (function_type (arrow) @punctuation.delimiter.structural.typedef)
+(function_type (effect_arrow) @punctuation.delimiter.structural.typedef)
 
 (parenthesized_type ["(" ")"] @punctuation.bracket.typedef)
 (tuple_type ["(" ")"] @punctuation.bracket.typedef)

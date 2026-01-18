@@ -664,11 +664,14 @@ module.exports = grammar({
 				alias(seq("(", $.function_type, ")"), $.type_annotation_paren),
 			),
 
+		// Helper for either pure (->) or effectful (=>) arrows
+		_function_arrow: ($) => choice($.arrow, $.effect_arrow),
+
 		function_type: ($) =>
 			seq(
 				sep1(field("param", $._type_annotation_paren_fun), ","),
-				$.arrow,
-				sep1($._type_annotation_paren_fun, $.arrow),
+				$._function_arrow,
+				sep1($._type_annotation_paren_fun, $._function_arrow),
 			),
 
 		parenthesized_type: ($) => seq("(", $._type_annotation, ")"),
@@ -914,6 +917,7 @@ module.exports = grammar({
 		//PRIMATIVES
 		back_arrow: ($) => "<-",
 		arrow: ($) => "->",
+		effect_arrow: ($) => "=>",
 		identifier: ($) => $._lower_identifier,
 		field_name: ($) => alias($.identifier, $.field_name),
 		ident: ($) => choice($._lower_identifier, $._upper_identifier),

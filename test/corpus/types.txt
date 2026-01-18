@@ -447,3 +447,74 @@ foo : Result(Ok, Err) -> Bool
       (arrow)
       (apply_type
         (concrete_type)))))
+
+================================================================================
+types_effectful_simple
+================================================================================
+print! : Str => {}
+--------------------------------------------------------------------------------
+
+(file
+  (annotation_type_def
+    (annotation_pre_colon
+      (identifier))
+    (function_type
+      (apply_type
+        (concrete_type))
+      (effect_arrow)
+      (record_type))))
+
+================================================================================
+types_effectful_with_return
+================================================================================
+main! : List(Str) => Try({}, [Exit(I32)])
+--------------------------------------------------------------------------------
+
+(file
+  (annotation_type_def
+    (annotation_pre_colon
+      (identifier))
+    (function_type
+      (apply_type
+        (concrete_type)
+        (apply_type_args
+          (paren_type_args
+            (apply_type
+              (concrete_type)))))
+      (effect_arrow)
+      (apply_type
+        (concrete_type)
+        (apply_type_args
+          (paren_type_args
+            (record_type)
+            (tags_type
+              (apply_type
+                (concrete_type)
+                (apply_type_args
+                  (paren_type_args
+                    (apply_type
+                      (concrete_type))))))))))))
+
+================================================================================
+types_effectful_multi_arg
+================================================================================
+write! : Str, Str => Try({}, Str)
+--------------------------------------------------------------------------------
+
+(file
+  (annotation_type_def
+    (annotation_pre_colon
+      (identifier))
+    (function_type
+      (apply_type
+        (concrete_type))
+      (apply_type
+        (concrete_type))
+      (effect_arrow)
+      (apply_type
+        (concrete_type)
+        (apply_type_args
+          (paren_type_args
+            (record_type)
+            (apply_type
+              (concrete_type))))))))

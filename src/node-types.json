@@ -1296,6 +1296,11 @@
     }
   },
   {
+    "type": "effect_arrow",
+    "named": true,
+    "fields": {}
+  },
+  {
     "type": "effect_name",
     "named": true,
     "fields": {},
@@ -1923,6 +1928,10 @@
         },
         {
           "type": "bound_variable",
+          "named": true
+        },
+        {
+          "type": "effect_arrow",
           "named": true
         },
         {
@@ -4561,6 +4570,10 @@
         },
         {
           "type": "bound_variable",
+          "named": true
+        },
+        {
+          "type": "effect_arrow",
           "named": true
         },
         {
