@@ -52,9 +52,9 @@ b= Tag a 1
 ================================================================================
 expr_fun
 ================================================================================
-normal= \ a,b,c-> p
-tuple= \ a,b,(b,d)-> p
-record= \ a,b,{b,d}-> p
+normal= |a, b, c| p
+tuple= |a, b, (b, d)| p
+record= |a, b, {b, d}| p
 --------------------------------------------------------------------------------
 
 (file
@@ -64,7 +64,6 @@ record= \ a,b,{b,d}-> p
         (identifier)))
     (expr_body
       (anon_fun_expr
-        (backslash)
         (argument_patterns
           (identifier_pattern
             (identifier))
@@ -72,7 +71,6 @@ record= \ a,b,{b,d}-> p
             (identifier))
           (identifier_pattern
             (identifier)))
-        (arrow)
         (expr_body
           (variable_expr
             (identifier))))))
@@ -82,7 +80,6 @@ record= \ a,b,{b,d}-> p
         (identifier)))
     (expr_body
       (anon_fun_expr
-        (backslash)
         (argument_patterns
           (identifier_pattern
             (identifier))
@@ -93,7 +90,6 @@ record= \ a,b,{b,d}-> p
               (identifier))
             (identifier_pattern
               (identifier))))
-        (arrow)
         (expr_body
           (variable_expr
             (identifier))))))
@@ -103,7 +99,6 @@ record= \ a,b,{b,d}-> p
         (identifier)))
     (expr_body
       (anon_fun_expr
-        (backslash)
         (argument_patterns
           (identifier_pattern
             (identifier))
@@ -114,7 +109,6 @@ record= \ a,b,{b,d}-> p
               (field_name))
             (record_field_pattern
               (field_name))))
-        (arrow)
         (expr_body
           (variable_expr
             (identifier)))))))
@@ -123,9 +117,9 @@ record= \ a,b,{b,d}-> p
 expr_fun_multiline
 ================================================================================
 a=
-  \a,b-> a \a->a+10
-a= 
-  \a,b->
+  |a, b| a (|a| a+10)
+a=
+  |a, b|
     var=
       10
     b+var
@@ -138,43 +132,39 @@ a=
         (identifier)))
     (expr_body
       (anon_fun_expr
-        (backslash)
         (argument_patterns
           (identifier_pattern
             (identifier))
           (identifier_pattern
             (identifier)))
-        (arrow)
         (expr_body
           (function_call_expr
             (variable_expr
               (identifier))
-            (anon_fun_expr
-              (backslash)
-              (argument_patterns
-                (identifier_pattern
-                  (identifier)))
-              (arrow)
+            (parenthesized_expr
               (expr_body
-                (bin_op_expr
-                  (variable_expr
-                    (identifier))
-                  (operator)
-                  (const
-                    (int))))))))))
+                (anon_fun_expr
+                  (argument_patterns
+                    (identifier_pattern
+                      (identifier)))
+                  (expr_body
+                    (bin_op_expr
+                      (variable_expr
+                        (identifier))
+                      (operator)
+                      (const
+                        (int))))))))))))
   (value_declaration
     (decl_left
       (identifier_pattern
         (identifier)))
     (expr_body
       (anon_fun_expr
-        (backslash)
         (argument_patterns
           (identifier_pattern
             (identifier))
           (identifier_pattern
             (identifier)))
-        (arrow)
         (expr_body
           (value_declaration
             (decl_left
