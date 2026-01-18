@@ -1,13 +1,12 @@
 ================================================================================
-when_is
+match_basic
 ================================================================================
 main=
-    when color is
-        Blue -> 1
-        Green | Red | Yellow -> 
-          p=10
-          p
-        Purple -> 3
+    match color {
+        Blue => 1
+        Green | Red | Yellow => 2
+        Purple => 3
+    }
 --------------------------------------------------------------------------------
 
 (file
@@ -16,19 +15,15 @@ main=
       (identifier_pattern
         (identifier)))
     (expr_body
-      (when_is_expr
-        (when)
+      (match_expr
         (variable_expr
           (identifier))
-        (is)
-        (when_is_branch
+        (match_branch
           (tag_pattern
             (tag))
-          (arrow)
-          (expr_body
-            (const
-              (int))))
-        (when_is_branch
+          (const
+            (int)))
+        (match_branch
           (disjunct_pattern
             (disjunct_pattern
               (tag_pattern
@@ -37,33 +32,23 @@ main=
                 (tag)))
             (tag_pattern
               (tag)))
-          (arrow)
-          (expr_body
-            (value_declaration
-              (decl_left
-                (identifier_pattern
-                  (identifier)))
-              (expr_body
-                (const
-                  (int))))
-            (variable_expr
-              (identifier))))
-        (when_is_branch
+          (const
+            (int)))
+        (match_branch
           (tag_pattern
             (tag))
-          (arrow)
-          (expr_body
-            (const
-              (int))))))))
+          (const
+            (int)))))))
 
 ================================================================================
-when_is_if
+match_with_guard
 ================================================================================
 main=
-  when a is 
-    b if b>10 -> c
-    b if b>20 -> c
-    _->d
+  match a {
+    b if b>10 => c
+    b if b>20 => c
+    _=>d
+  }
 
 --------------------------------------------------------------------------------
 
@@ -73,53 +58,46 @@ main=
       (identifier_pattern
         (identifier)))
     (expr_body
-      (when_is_expr
-        (when)
+      (match_expr
         (variable_expr
           (identifier))
-        (is)
-        (when_is_branch
+        (match_branch
           (identifier_pattern
             (identifier))
-          (if
+          (guard
             (bin_op_expr
               (variable_expr
                 (identifier))
               (operator)
               (const
                 (int))))
-          (arrow)
-          (expr_body
-            (variable_expr
-              (identifier))))
-        (when_is_branch
+          (variable_expr
+            (identifier)))
+        (match_branch
           (identifier_pattern
             (identifier))
-          (if
+          (guard
             (bin_op_expr
               (variable_expr
                 (identifier))
               (operator)
               (const
                 (int))))
-          (arrow)
-          (expr_body
-            (variable_expr
-              (identifier))))
-        (when_is_branch
+          (variable_expr
+            (identifier)))
+        (match_branch
           (wildcard_pattern)
-          (arrow)
-          (expr_body
-            (variable_expr
-              (identifier))))))))
+          (variable_expr
+            (identifier)))))))
 
 ================================================================================
-list patterns
+match_list_patterns
 ================================================================================
 a=
-  when a is
-    [..,1]->a
-    ['a','b',..]-> b
+  match a {
+    [..,1]=>a
+    ['a','b',..]=> b
+  }
 
 --------------------------------------------------------------------------------
 
@@ -129,38 +107,33 @@ a=
       (identifier_pattern
         (identifier)))
     (expr_body
-      (when_is_expr
-        (when)
+      (match_expr
         (variable_expr
           (identifier))
-        (is)
-        (when_is_branch
+        (match_branch
           (list_pattern
             (range_pattern)
             (const
               (int)))
-          (arrow)
-          (expr_body
-            (variable_expr
-              (identifier))))
-        (when_is_branch
+          (variable_expr
+            (identifier)))
+        (match_branch
           (list_pattern
             (const
               (char))
             (const
               (char))
             (range_pattern))
-          (arrow)
-          (expr_body
-            (variable_expr
-              (identifier))))))))
+          (variable_expr
+            (identifier)))))))
 
 ================================================================================
-when_is_as
+match_as_pattern
 ================================================================================
 m=
-  when val is
-    ({one:a,two:b} as aa) ->aa
+  match val {
+    ({one:a,two:b} as aa) =>aa
+  }
 --------------------------------------------------------------------------------
 
 (file
@@ -169,12 +142,10 @@ m=
       (identifier_pattern
         (identifier)))
     (expr_body
-      (when_is_expr
-        (when)
+      (match_expr
         (variable_expr
           (identifier))
-        (is)
-        (when_is_branch
+        (match_branch
           (paren_pattern
             (as_pattern
               (record_pattern
@@ -187,7 +158,5 @@ m=
                   (identifier_pattern
                     (identifier))))
               (identifier)))
-          (arrow)
-          (expr_body
-            (variable_expr
-              (identifier))))))))
+          (variable_expr
+            (identifier)))))))

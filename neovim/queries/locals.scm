@@ -10,7 +10,7 @@
 
 (import_expr(as)(module)@local.definition)
 
-(opaque_type_def
+(nominal_type_def
   (apply_type
     (concrete_type) @local.definition.type))
 

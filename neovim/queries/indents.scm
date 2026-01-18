@@ -1,7 +1,7 @@
 ; (value_declaration(expr_body(anon_fun_expr)))@indent.ignore
 [
- (when_is_expr)
- (when_is_branch)
+ (match_expr)
+ (match_branch)
  (record_expr)
  (anon_fun_expr)
  (list_expr)
@@ -20,7 +20,7 @@
 
  ;;ability stuff
  (ability_implementation)
- (opaque_type_def)
+ (nominal_type_def)
  ;;types
  (record_type)
  (tags_type)

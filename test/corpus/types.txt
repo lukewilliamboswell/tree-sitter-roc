@@ -248,6 +248,64 @@ var=a
         (identifier)))))
 
 ================================================================================
+types_nominal_with_methods
+================================================================================
+Color := [Red, Green, Blue].{
+    as_str : Color -> Str
+    as_str = |c| c
+}
+--------------------------------------------------------------------------------
+
+(file
+  (nominal_type_def
+    (apply_type
+      (concrete_type))
+    (colon_equals)
+    (tags_type
+      (apply_type
+        (concrete_type))
+      (apply_type
+        (concrete_type))
+      (apply_type
+        (concrete_type)))
+    (nominal_methods
+      (method_annotation
+        (annotation_pre_colon
+          (identifier))
+        (method_function_type
+          (method_apply_type
+            (concrete_type))
+          (arrow)
+          (method_apply_type
+            (concrete_type))))
+      (method_declaration
+        (decl_left
+          (identifier_pattern
+            (identifier)))
+        (anon_fun_expr
+          (argument_patterns
+            (identifier_pattern
+              (identifier)))
+          (expr_body
+            (variable_expr
+              (identifier))))))))
+
+================================================================================
+types_nominal_empty_methods
+================================================================================
+Wrapper := Str.{}
+--------------------------------------------------------------------------------
+
+(file
+  (nominal_type_def
+    (apply_type
+      (concrete_type))
+    (colon_equals)
+    (apply_type
+      (concrete_type))
+    (nominal_methods)))
+
+================================================================================
 types_functions
 ================================================================================
 A: R->B a

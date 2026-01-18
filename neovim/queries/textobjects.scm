@@ -24,7 +24,7 @@
 [
   (annotation_type_def ) @class.inner
   (alias_type_def ) @class.inner
-  (opaque_type_def ) @class.inner
+  (nominal_type_def ) @class.inner
 ] @class.outer
 
 (apply_type_arg) @parameter.inner

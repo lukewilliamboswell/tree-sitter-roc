@@ -174,7 +174,7 @@
 (argument_patterns(_(_(_(_(_(identifier_pattern(identifier)@variable.parameter)))))))
 
 ; pattern captures
-(when_is_branch pattern: (_ (identifier_pattern (identifier) @variable.parameter)))
+(match_branch pattern: (_ (identifier_pattern (identifier) @variable.parameter)))
 (range_pattern (identifier) @variable.parameter)
 
 

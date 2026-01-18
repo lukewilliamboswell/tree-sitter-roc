@@ -6,7 +6,6 @@ const PREC = {
 	FUNCTION_START: 1,
 	PART: 1,
 	TYPEALIAS: 2,
-	CASE_OF_BRANCH: 6,
 	FUNC: 10,
 	IMPORT: 20,
 };
@@ -56,7 +55,6 @@ module.exports = grammar({
 		[$.list_pattern, $.list_expr],
 		[$._module_elem, $.value_declaration],
 		[$._module_elem, $._expr_inner],
-		[$._more_when_is_branches],
 		//Introduced because of the bang expression
 		[$._atom_expr, $.expr_body],
 		[$._atom_expr],
@@ -66,6 +64,12 @@ module.exports = grammar({
 		// Type arguments vs parenthesized type: List(a) vs (Type)
 		[$.parenthesized_type, $.paren_type_args],
 		[$.tuple_type, $.paren_type_args],
+		// Method type annotations conflicts
+		[$.parenthesized_type, $.method_paren_type_args],
+		[$.tuple_type, $.method_paren_type_args],
+		[$._method_type_annotation_no_fun, $._type_annotation_no_fun],
+		[$._method_type_annotation, $._method_type_annotation_paren_fun],
+		[$.method_apply_type, $.apply_type],
 	],
 
 	words: ($) => /\s+/,
@@ -177,7 +181,6 @@ module.exports = grammar({
 				$.record_expr,
 				$.record_update_expr,
 				$.if_expr,
-				$.when_is_expr,
 				$.match_expr,
 				$.variable_expr,
 				$.parenthesized_expr,
@@ -199,7 +202,8 @@ module.exports = grammar({
 				$.import_file_expr,
 			),
 
-		prefixed_expression: ($) => prec.left(seq($.operator, $._call_or_atom)),
+		// Prefix operators: ! (NOT) and - (negation)
+		prefixed_expression: ($) => prec.left(seq(choice("!", "-"), $._call_or_atom)),
 		dbg_expr: ($) => seq("dbg", alias($.expr_body_terminal, $.expr_body)),
 		else: ($) => seq("else", $.expr_body),
 		then: ($) => seq("then", field("then", $.expr_body)),
@@ -275,47 +279,6 @@ module.exports = grammar({
 				),
 			),
 		bang_expr: ($) => prec(PREC.PART, seq($._atom_expr, "!")),
-
-		//WHEN_IS
-
-		when_is_expr: ($) =>
-			prec.right(
-				seq(
-					alias("when", $.when),
-					$._expr_inner,
-					alias("is", $.is),
-					choice(
-						//when the branches are indented
-						seq(
-							$._indent,
-							$.when_is_branch,
-							optional($._more_when_is_branches),
-							$._dedent,
-						),
-						//when the contents is not indented
-						seq(
-							$._end_newline,
-							$.when_is_branch,
-							optional($._more_when_is_branches),
-						),
-					),
-				),
-			),
-
-		_more_when_is_branches: ($) =>
-			prec.dynamic(
-				PREC.CASE_OF_BRANCH,
-				repeat1(seq($._newline, field("branch", $.when_is_branch))),
-			),
-
-		when_is_branch: ($) =>
-			seq(
-				field("pattern", $._pattern),
-				optional(seq("if", alias($._expr_inner, $.if))),
-				$.arrow,
-				//TODO: evaluate what options can got here
-				field("expr", $.expr_body),
-			),
 
 		// Modern match expression: match expr { pattern => result ... }
 		match_expr: ($) =>
@@ -418,7 +381,6 @@ module.exports = grammar({
 				$.as_pattern,
 				$.disjunct_pattern,
 				$.conjunct_pattern,
-				$.cons_pattern,
 				// // $.repeat_pattern,
 				$.paren_pattern,
 				$.list_pattern,
@@ -434,7 +396,6 @@ module.exports = grammar({
 
 		identifier_pattern: ($) => $.identifier,
 		as_pattern: ($) => prec.left(0, seq($._pattern, "as", $.identifier)),
-		cons_pattern: ($) => prec.left(0, seq($._pattern, "::", $._pattern)),
 		disjunct_pattern: ($) => prec.left(0, seq($._pattern, "|", $._pattern)),
 		conjunct_pattern: ($) => prec.left(0, seq($._pattern, "&", $._pattern)),
 
@@ -642,12 +603,110 @@ module.exports = grammar({
 			seq($.annotation_pre_colon, ":", $._type_annotation),
 		alias_type_def: ($) =>
 			seq($.apply_type, ":", field("body", $._type_annotation)),
-		// Nominal types: `Name :: Type` (simple) or `Name := Type` (with methods)
+		// Nominal types: `Name :: Type` (simple) or `Name := Type.{ methods }`
 		nominal_type_def: ($) =>
 			seq(
 				$.apply_type,
 				choice(alias("::", $.double_colon), alias(":=", $.colon_equals)),
 				$._type_annotation,
+				optional($.nominal_methods),
+			),
+
+		// Method block for nominal types: `.{ method_def ... }`
+		nominal_methods: ($) =>
+			seq(
+				".{",
+				repeat($._method_member),
+				"}",
+			),
+
+		// Members inside nominal methods block - either type annotation or implementation
+		_method_member: ($) =>
+			choice(
+				$.method_annotation,
+				$.method_declaration,
+			),
+
+		// Type annotation inside method block (uses restricted types that don't allow space-separated args)
+		method_annotation: ($) =>
+			seq(
+				alias($.annotation_pre_colon, $.annotation_pre_colon),
+				$._method_type_annotation,
+			),
+
+		// Method implementation inside nominal type: `name = expr`
+		method_declaration: ($) =>
+			seq(
+				alias($._assigment_pattern, $.decl_left),
+				"=",
+				field("body", $._expr_inner),
+			),
+
+		// Restricted type annotations for method blocks - only parenthesized type args allowed
+		_method_type_annotation: ($) =>
+			prec.left(
+				choice(
+					seq(
+						$._indent,
+						choice($._method_type_annotation_no_fun, $.method_function_type),
+						$._dedent,
+					),
+					choice($._method_type_annotation_no_fun, $.method_function_type),
+				),
+			),
+
+		method_function_type: ($) =>
+			seq(
+				sep1(field("param", $._method_type_annotation_paren_fun), ","),
+				$._function_arrow,
+				sep1($._method_type_annotation_paren_fun, $._function_arrow),
+			),
+
+		_method_type_annotation_paren_fun: ($) =>
+			choice(
+				$._method_type_annotation_no_fun,
+				alias(seq("(", $.method_function_type, ")"), $.type_annotation_paren),
+			),
+
+		_method_type_annotation_no_fun: ($) =>
+			choice(
+				alias(seq("(", $._method_type_annotation, ")"), $.parenthesized_type),
+				$.record_type,
+				$.method_apply_type,  // Uses restricted apply_type
+				$.where_implements,
+				$.implements_implementation,
+				$.tags_type,
+				$.bound_variable,
+				$.inferred,
+				alias($._method_tuple_type, $.tuple_type),
+			),
+
+		_method_tuple_type: ($) =>
+			seq(
+				"(",
+				$._method_type_annotation,
+				",",
+				sep1_tail($._method_type_annotation, ","),
+				")",
+			),
+
+		// Apply type that only allows parenthesized args (no space-separated)
+		method_apply_type: ($) =>
+			prec.right(seq($.concrete_type, optional($.method_paren_type_args))),
+
+		method_paren_type_args: ($) =>
+			prec.dynamic(
+				100,
+				prec.right(
+					100,
+					seq(
+						"(",
+						$._method_type_annotation,
+						repeat(prec.right(100, seq(",", $._method_type_annotation))),
+						optional(","),
+						")",
+					),
+				),
 			),
 
 		_type_annotation: ($) =>
@@ -945,28 +1004,15 @@ module.exports = grammar({
 				"*",
 				"/",
 				"%",
-				"!",
 				"//",
-				"^",
 				"==",
 				"!=",
-				"/=",
 				"<",
 				">",
 				"<=",
 				">=",
 				"and",
 				"or",
-				"++",
-				"<|",
-				"|>",
-				"<<",
-				">>",
-				"::",
-				"</>",
-				"<?>",
-				"|.",
-				"|=",
 			),
 	},
 });
