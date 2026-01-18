@@ -816,6 +816,7 @@ module.exports = grammar({
 				$.char,
 				$.string,
 				$.multiline_string,
+				$.line_string,
 				$.int,
 				"false",
 				"true",
@@ -839,6 +840,24 @@ module.exports = grammar({
 					choice(imm(prec(0, /[^\\]/)), $.interpolation_char, $.escape_char),
 				),
 				'"""',
+			),
+
+		// Line-prefix multiline string: \\Line 1\n\\Line 2
+		line_string: ($) =>
+			prec.right(
+				repeat1($.line_string_segment),
+			),
+
+		line_string_segment: ($) =>
+			seq(
+				"\\\\",
+				repeat(
+					choice(
+						imm(prec(0, /[^\n\\$]+/)),
+						$.interpolation_char,
+						$.escape_char,
+					),
+				),
 			),
 
 		// Escape sequences including unicode: \n, \t, \u(XXXX), etc.

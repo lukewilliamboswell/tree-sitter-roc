@@ -1101,6 +1101,10 @@
           "named": true
         },
         {
+          "type": "line_string",
+          "named": true
+        },
+        {
           "type": "multiline_string",
           "named": true
         },
@@ -1149,6 +1153,10 @@
         },
         {
           "type": "int",
+          "named": true
+        },
+        {
+          "type": "line_string",
           "named": true
         },
         {
@@ -2592,6 +2600,40 @@
         },
         {
           "type": "when_is_expr",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "line_string",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "line_string_segment",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "line_string_segment",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "escape_char",
+          "named": true
+        },
+        {
+          "type": "interpolation_char",
           "named": true
         }
       ]
@@ -5037,6 +5079,10 @@
     "named": false
   },
   {
+    "type": "\\\\",
+    "named": false
+  },
+  {
     "type": "]",
     "named": false
   },
@@ -5170,11 +5216,11 @@
   },
   {
     "type": "module",
-    "named": true
+    "named": false
   },
   {
     "type": "module",
-    "named": false
+    "named": true
   },
   {
     "type": "natural",

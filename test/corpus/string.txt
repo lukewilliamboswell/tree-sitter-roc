@@ -165,3 +165,51 @@ nbsp = "\u(00A0)"
       (const
         (string
           (escape_char))))))
+
+================================================================================
+line_string_simple
+================================================================================
+msg =
+    \\Hello
+    \\World
+--------------------------------------------------------------------------------
+
+(file
+  (value_declaration
+    (decl_left
+      (identifier_pattern
+        (identifier)))
+    (expr_body
+      (const
+        (line_string
+          (line_string_segment)
+          (line_string_segment))))))
+
+================================================================================
+line_string_with_interpolation
+================================================================================
+msg =
+    \\Hello ${name}
+    \\Count: ${x + 1}
+--------------------------------------------------------------------------------
+
+(file
+  (value_declaration
+    (decl_left
+      (identifier_pattern
+        (identifier)))
+    (expr_body
+      (const
+        (line_string
+          (line_string_segment
+            (interpolation_char
+              (variable_expr
+                (identifier))))
+          (line_string_segment
+            (interpolation_char
+              (bin_op_expr
+                (variable_expr
+                  (identifier))
+                (operator)
+                (const
+                  (int))))))))))

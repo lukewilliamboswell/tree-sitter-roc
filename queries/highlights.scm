@@ -206,6 +206,7 @@
 
 (string)@string
 (multiline_string)@string
+(line_string)@string
 (char) @constant.character
 (escape_char)@constant.character.escape
 
