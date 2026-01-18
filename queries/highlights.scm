@@ -25,14 +25,8 @@
 (record_field_type ":" @punctuation.delimiter.typedef)
 
 (record_field_type (field_name) @variable.other.enum.typedef)
-(ability_chain "&" @operator.typedef)
-
-(where_implements _
-  (where) @type.keyword
-  (identifier) @type.parameter
-  (implements) @type.keyword
-  (ability_chain) @type.parameter)
-
+(where_clause
+  (where) @type.keyword)
 
 ((concrete_type) @type.builtin
   (#match? @type.builtin "^(Bool|Str|Num|List|Result|Dict|Set|Dec)"))
@@ -82,12 +76,10 @@
 
 [
   "if"
-  "then"
   "else"
 ] @keyword.control.conditional
 
 [
-(implements)
 "match"
 "as"
 (to)

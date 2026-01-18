@@ -40,60 +40,6 @@ main! = |_args| Stdout.line!("Hello world")
                   (string))))))))))
 
 ================================================================================
-header_platform
-================================================================================
-
-platform "ruby-interop"
-    requires {} { main : arg -> ret where arg implements Decode.Decoding, ret implements Encoding }
-    exposes []
-    packages {}
-    imports [TotallyNotJson]
-    provides [mainForHost]
-
-main = 1
---------------------------------------------------------------------------------
-
-(file
-  (platform_header
-    (name)
-    (platform_header_body
-      (requires
-        (requires_rigids)
-        (typed_ident
-          (identifier)
-          (function_type
-            (bound_variable)
-            (arrow)
-            (where_implements
-              (bound_variable)
-              (where)
-              (identifier)
-              (implements)
-              (ability_chain
-                (module)
-                (ability))
-              (identifier)
-              (implements)
-              (ability_chain
-                (ability))))))
-      (exposes
-        (exposes_list))
-      (packages
-        (record_pattern))
-      (imports
-        (imports_entry
-          (module)))
-      (provides
-        (ident))))
-  (value_declaration
-    (decl_left
-      (identifier_pattern
-        (identifier)))
-    (expr_body
-      (const
-        (int)))))
-
-================================================================================
 header_module
 ================================================================================
 

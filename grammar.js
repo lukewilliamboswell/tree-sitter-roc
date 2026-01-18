@@ -13,6 +13,9 @@ const PREC = {
 module.exports = grammar({
 	name: "roc",
 
+	// Tell tree-sitter which token represents identifiers, so keywords like 'if' are properly reserved
+	word: ($) => $._lower_identifier,
+
 	// The external scanner (scanner.cc) allows us to inject "dummy" tokens into the grammar.
 	// These tokens are used to track the indentation-based scoping used in Roc
 
@@ -39,7 +42,7 @@ module.exports = grammar({
 	extras: ($) => [
 		$.line_comment,
 		$.doc_comment,
-		/[ \s\f\uFEFF\u2060\u200B]|\\\r?n/,
+		/[\s\f\uFEFF\u2060\u200B]/,
 	],
 
 	conflicts: ($) => [
@@ -71,7 +74,6 @@ module.exports = grammar({
 		[$.method_apply_type, $.apply_type],
 		// Conflict between qualified type name (Module.Type) and nominal_methods start (.{)
 		[$.concrete_type],
-		[$._ability],
 		// Spread patterns in lists vs range pattern
 		[$.list_spread_pattern, $.range_pattern],
 	],
@@ -87,22 +89,18 @@ module.exports = grammar({
 		$.inferred,
 	],
 
-	// supertypes: ($) => [$._module_elem, $._pattern, $._expr_inner],
-
 	rules: {
 		file: ($) =>
 			seq(
 				optional(seq($._header, $._end_newline)),
 				repeat1(seq($._module_elem, $._end_newline)),
 			),
-		//TODO i could make a different version of this for when the module is an interface
 		_module_elem: ($) =>
 			choice(
 				$.annotation_type_def,
 				$.alias_type_def,
 				$.nominal_type_def,
 				$.expect,
-				$.implements_definition,
 				$.value_declaration,
 				$.expr_body,
 				$.import_expr,
@@ -114,10 +112,7 @@ module.exports = grammar({
 			prec(
 				0,
 				seq(
-					//TODO i should be able to find a better solution that this silly /n
 					optional(seq($.annotation_type_def, $._end_newline)),
-
-					// $._newline,
 					alias($._assigment_pattern, $.decl_left),
 					"=",
 					field("body", alias($.expr_body_terminal, $.expr_body)),
@@ -252,44 +247,30 @@ module.exports = grammar({
 		// Prefix operators: ! (NOT) and - (negation)
 		prefixed_expression: ($) => prec.left(seq(choice("!", "-"), $._call_or_atom)),
 		dbg_expr: ($) => seq("dbg", alias($.expr_body_terminal, $.expr_body)),
-		else: ($) => seq("else", $.expr_body),
-		then: ($) => seq("then", field("then", $.expr_body)),
-		else_if: ($) =>
-			prec.left(seq("else", "if", field("guard", $._expr_inner), $.then)),
 
 		variable_expr: ($) => alias($.long_identifier, $.variable_expr),
 		long_identifier: ($) => seq(repeat(seq($.module, ".")), $.identifier),
 		parenthesized_expr: ($) => seq("(", field("expression", $.expr_body), ")"),
-		// If expression - supports both:
-		// - if cond then expr else expr (old style with then keyword)
-		// - if cond expr else expr (modern style without then)
-		// - if cond { block } else { block }
+		// If expression: if cond { block } else { block }
 		if_expr: ($) =>
 			seq(
 				"if",
 				field("guard", $._expr_inner),
-				choice(
-					// Old style with explicit then
-					seq($.then, repeat($.else_if), $.else),
-					// Modern style - direct expression or block
-					seq(
-						field("then", choice($.block_body, $.expr_body)),
-						repeat($.modern_else_if),
-						$.modern_else,
-					),
-				),
+				field("then", choice(prec.dynamic(25, $.block_body), prec.dynamic(5, $.expr_body))),
+				repeat($.else_if),
+				$.else,
 			),
-		modern_else_if: ($) =>
+		else_if: ($) =>
 			prec.left(
 				seq(
 					"else",
 					"if",
 					field("guard", $._expr_inner),
-					field("then", choice($.block_body, $.expr_body)),
+					field("then", choice(prec.dynamic(25, $.block_body), prec.dynamic(5, $.expr_body))),
 				),
 			),
-		modern_else: ($) =>
-			seq("else", field("else", choice($.block_body, $.expr_body))),
+		else: ($) =>
+			seq("else", field("else", choice(prec.dynamic(25, $.block_body), prec.dynamic(5, $.expr_body)))),
 		backpassing_expr: ($) =>
 			seq(
 				field("assignee", $._assigment_pattern),
@@ -364,7 +345,6 @@ module.exports = grammar({
 		_function_call_target: ($) =>
 			choice(
 				$.field_access_expr,
-				// $.field_accessor_function_expr,
 				$.variable_expr,
 				$.operator_as_function_expr,
 				$.parenthesized_expr,
@@ -426,7 +406,7 @@ module.exports = grammar({
 
 		// Block body with curly braces: { declarations... result }
 		block_body: ($) =>
-			prec(
+			prec.dynamic(
 				20, // Higher precedence than record patterns
 				seq(
 					"{",
@@ -470,11 +450,14 @@ module.exports = grammar({
 			seq($.field_name, seq(":", "<-", choice($.function_call_expr, $._function_call_target))),
 
 		record_expr: ($) =>
-			seq(
-				"{",
-				optional($.record_update_ext),
-				sep_tail(choice($.record_field_expr, $.record_field_builder), ","),
-				"}",
+			prec.dynamic(
+				10, // Lower than block_body's 20, so { x } prefers block
+				seq(
+					"{",
+					optional($.record_update_ext),
+					sep_tail(choice($.record_field_expr, $.record_field_builder), ","),
+					"}",
+				),
 			),
 
 		// Modern record update prefix: { ..person, field: value }
@@ -501,10 +484,7 @@ module.exports = grammar({
 				")",
 			),
 
-		//####---------###
-		//#### PATTERN ###
-		//####---------###
-		// Pattern rules (BEGIN)
+		// PATTERNS
 		_pattern: ($) =>
 			choice(
 				alias("_", $.wildcard_pattern),
@@ -513,17 +493,12 @@ module.exports = grammar({
 				$.as_pattern,
 				$.disjunct_pattern,
 				$.conjunct_pattern,
-				// // $.repeat_pattern,
 				$.paren_pattern,
 				$.list_pattern,
 				$.tag_pattern,
 				$.record_pattern,
 				$.tuple_pattern,
 				$.range_pattern,
-				// $.typed_pattern,
-				// $.attribute_pattern,
-				// :? atomic-type
-				// :? atomic-type as ident
 			),
 
 		identifier_pattern: ($) => $.identifier,
@@ -565,8 +540,6 @@ module.exports = grammar({
 				$.tag_pattern,
 				$.range_pattern,
 				seq("(", $._pattern, ")"),
-
-				// :? atomic_type
 			),
 		_assigment_pattern: ($) =>
 			choice(
@@ -596,23 +569,18 @@ module.exports = grammar({
 				"{",
 				sep_tail(
 					choice(
-						// $.record_field_type,
 						$.record_field_pattern,
 						$.record_field_optional_pattern,
-						// $.identifier_pattern,
 					),
 					",",
 				),
 				"}",
 			),
-		//TODO is this really a pattern??
 		record_field_optional_pattern: ($) => seq($.field_name, "?", $.expr_body),
 		record_field_pattern: ($) =>
 			seq($.field_name, optional(seq(":", $._atomic_pattern))),
-		//###--------####
-		//### HEADER ####
-		//###--------###
 
+		// HEADERS
 		_header: ($) =>
 			choice(
 				$.app_header,
@@ -622,7 +590,6 @@ module.exports = grammar({
 			),
 		package_header: ($) => seq("package", $.provides_list, $.packages_list),
 		app_header: ($) => seq("app", $.provides_list, $.packages_list),
-		//TODO make this a function for app and platform
 		platform_header: ($) =>
 			seq(
 				"platform",
@@ -646,7 +613,6 @@ module.exports = grammar({
 
 		module_header: ($) => seq("module", $.exposes_list),
 
-		//TODO: should this actually be a record_pattern?
 		packages: ($) => seq("packages", $.record_pattern),
 
 		packages_list: ($) =>
@@ -693,7 +659,6 @@ module.exports = grammar({
 					seq(alias("as", $.import_as), $.identifier, ":", $._type_annotation),
 				),
 			),
-		//TODO make a function for all these comma separated trailing comma things
 		to: ($) => "to",
 		provides: ($) =>
 			seq(
@@ -717,27 +682,22 @@ module.exports = grammar({
 			seq("requires", $.requires_rigids, "{", $.typed_ident, "}"),
 
 		requires_rigids: ($) =>
-			choice(
-				seq(
-					"{",
-					optional(
-						seq(
-							$.requires_rigid,
-							repeat(seq(",", $.requires_rigid)),
-							optional(","),
-						),
+			seq(
+				"{",
+				optional(
+					seq(
+						$.requires_rigid,
+						repeat(seq(",", $.requires_rigid)),
+						optional(","),
 					),
-					"}",
 				),
+				"}",
 			),
 
 		requires_rigid: ($) =>
 			seq($.identifier, optional(seq("=>", $._upper_identifier))),
 
-		//####-------###
-		//#### TYPES ###
-		//####-------###
-
+		// TYPES
 		annotation_type_def: ($) =>
 			seq($.annotation_pre_colon, ":", $._type_annotation),
 		alias_type_def: ($) =>
@@ -814,8 +774,7 @@ module.exports = grammar({
 				alias(seq("(", $._method_type_annotation, ")"), $.parenthesized_type),
 				$.record_type,
 				$.method_apply_type,  // Uses restricted apply_type
-				$.where_implements,
-				$.implements_implementation,
+				$.where_clause,
 				$.tags_type,
 				$.bound_variable,
 				$.inferred,
@@ -863,7 +822,6 @@ module.exports = grammar({
 				),
 			),
 
-		//TODO i can probably get rid of this, because type_annotation_no_fun can eventually laev to (functio_type)
 		_type_annotation_paren_fun: ($) =>
 			choice(
 				$._type_annotation_no_fun,
@@ -886,8 +844,7 @@ module.exports = grammar({
 				$.parenthesized_type,
 				$.record_type,
 				$.apply_type,
-				$.where_implements,
-				$.implements_implementation,
+				$.where_clause,
 				$.tags_type,
 				$.bound_variable,
 				$.inferred,
@@ -903,22 +860,18 @@ module.exports = grammar({
 				")",
 			),
 
-		implements: ($) => "implements",
-
-		where_implements: ($) =>
+		// Where clause: Type where [a.method : a -> Str]
+		where_clause: ($) =>
 			prec.right(
 				seq(
 					$._type_annotation_no_fun,
 					alias("where", $.where),
-					choice(
-						// Modern bracket syntax: where [a.method : Type]
-						seq("[", sep1_tail($.where_constraint, ","), "]"),
-						// Old syntax: where a implements Ability
-						sep1($._implements_body, ","),
-					),
+					"[",
+					sep1_tail($.where_constraint, ","),
+					"]",
 				),
 			),
-		// Modern where constraint: a.method : a -> Str
+		// Where constraint: a.method : a -> Str
 		where_constraint: ($) =>
 			seq(
 				$.bound_variable,
@@ -927,34 +880,6 @@ module.exports = grammar({
 				":",
 				$._type_annotation,
 			),
-		_implements_body: ($) => seq($.identifier, $.implements, $.ability_chain),
-
-		ability_implementation: ($) =>
-			seq(alias($._upper_identifier, $.ability_name), optional($.record_expr)),
-		implements_implementation: ($) =>
-			seq(
-				$._type_annotation_no_fun,
-				$.implements,
-				"[",
-				sep1_tail($.ability_implementation, ","),
-				"]",
-			),
-
-		implements_definition: ($) =>
-			seq(
-				$._upper_identifier,
-				$.implements,
-				$.record_type,
-				// "{",
-				//   $._indent,
-				//   sep1($.alias, $._newline),
-				//   $._dedent,
-				// "}"
-			),
-		//    init : {} -> f where f implements InspectFormatter
-		_ability: ($) =>
-			sep1end($.module, ".", alias($._upper_identifier, $.ability)),
-		ability_chain: ($) => prec.right(sep1($._ability, "&")),
 
 		tags_type: ($) => seq("[", optional($._tags_only), "]"),
 
@@ -980,8 +905,6 @@ module.exports = grammar({
 		// Open tag union marker: .. or ..typevar
 		open_tag_union: ($) =>
 			seq("..", optional($.bound_variable)),
-
-		type_variable: ($) => choice("_", $.bound_variable),
 
 		bound_variable: ($) => alias($._lower_identifier, $.bound_variable),
 
@@ -1043,27 +966,14 @@ module.exports = grammar({
 		record_field_type_optional: ($) =>
 			seq($.field_name, "?", $._type_annotation),
 
-		annotation_pre_colon: ($) =>
-			choice(
-				//TODO implimeent apply $.apply,
-				//tag seems not needed when we have alias
-				// $.tag,
-				$.identifier,
-			),
+		annotation_pre_colon: ($) => $.identifier,
 
 		effects: ($) =>
-			seq(
-				// '__',
-				"effects",
-				$.effect_name,
-				$.record_type,
-			),
+			seq("effects", $.effect_name, $.record_type),
 
 		effect_name: ($) => seq($.identifier, ".", $._upper_identifier),
-		//##------------##
-		//##-- consts --##
-		//##------------##
 
+		// CONSTANTS
 		const: ($) =>
 			choice(
 				$.float,
@@ -1072,7 +982,6 @@ module.exports = grammar({
 				$.natural,
 				$.uint,
 				$.iint,
-
 				$.char,
 				$.string,
 				$.multiline_string,
@@ -1080,10 +989,9 @@ module.exports = grammar({
 				$.int,
 				"false",
 				"true",
-				// $.unit,
 			),
 
-		//STRINGS
+		// STRINGS
 		string: ($) =>
 			seq(
 				'"',
@@ -1129,14 +1037,11 @@ module.exports = grammar({
 				$._expr_inner,
 				"}",
 			),
-		_simple_string_char: ($) => /[^\t\r\u0008\a\f\v\\"]/,
 		_simple_char_char: ($) => imm(/[^\n\t\r\u0008\a\f\v'\\]/),
 		char: ($) => seq("'", choice($.escape_char, $._simple_char_char), imm("'")),
 
-		//NUMBERS
+		// NUMBERS
 		int: ($) => token(seq(/[0-9][0-9_]*/)),
-
-		//ROC
 		uint: ($) => token(seq(/[0-9][0-9_]*/, imm(/u(32|8|16|64|128)/))),
 		iint: ($) => token(seq(/[0-9][0-9_]*/, imm(/i(32|8|16|64|128)/))),
 		decimal: ($) => token(/[0-9]+(\.)?[0-9]*(dec)/),
@@ -1148,7 +1053,7 @@ module.exports = grammar({
 		_binary_int: ($) => token(seq(/0[b]/, /[01][01_]*/)),
 		xint: ($) => choice($._binary_int, $._octal_int, $._hex_int),
 
-		//PRIMATIVES
+		// PRIMITIVES
 		back_arrow: ($) => "<-",
 		arrow: ($) => "->",
 		effect_arrow: ($) => "=>",

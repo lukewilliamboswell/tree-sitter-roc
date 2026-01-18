@@ -3,7 +3,7 @@ expr_tag
 ================================================================================
 a =
   Tag a
-b= Tag(if a then b else c)
+b= Tag(if (a) { b } else { c })
 b= Tag a 1
 --------------------------------------------------------------------------------
 
@@ -27,14 +27,15 @@ b= Tag a 1
         (parenthesized_expr
           (expr_body
             (if_expr
-              (variable_expr
-                (identifier))
-              (then
+              (parenthesized_expr
                 (expr_body
                   (variable_expr
                     (identifier))))
+              (block_body
+                (variable_expr
+                  (identifier)))
               (else
-                (expr_body
+                (block_body
                   (variable_expr
                     (identifier))))))))))
   (value_declaration
@@ -233,9 +234,9 @@ a = ((1,1),1,b,c,d)
 list
 ================================================================================
 a = [a,b]
-a = [if a then b else c,1]
+a = [if (a) { b } else { c },1]
 a = [[1,1],1,b,c,d]
-a = 
+a =
   [
     [1,1],1,b,c,d
   ]
@@ -259,14 +260,15 @@ a =
     (expr_body
       (list_expr
         (if_expr
-          (variable_expr
-            (identifier))
-          (then
+          (parenthesized_expr
             (expr_body
               (variable_expr
                 (identifier))))
+          (block_body
+            (variable_expr
+              (identifier)))
           (else
-            (expr_body
+            (block_body
               (variable_expr
                 (identifier)))))
         (const

@@ -1,8 +1,8 @@
 ================================================================================
 if_basic
 ================================================================================
-a= if a then b else c
-a= if a then b else if a_2 then c else d
+a= if (a) { b } else { c }
+a= if (a) { b } else if (a_2) { c } else { d }
 --------------------------------------------------------------------------------
 
 (file
@@ -12,14 +12,15 @@ a= if a then b else if a_2 then c else d
         (identifier)))
     (expr_body
       (if_expr
-        (variable_expr
-          (identifier))
-        (then
+        (parenthesized_expr
           (expr_body
             (variable_expr
               (identifier))))
+        (block_body
+          (variable_expr
+            (identifier)))
         (else
-          (expr_body
+          (block_body
             (variable_expr
               (identifier)))))))
   (value_declaration
@@ -28,34 +29,34 @@ a= if a then b else if a_2 then c else d
         (identifier)))
     (expr_body
       (if_expr
-        (variable_expr
-          (identifier))
-        (then
+        (parenthesized_expr
           (expr_body
             (variable_expr
               (identifier))))
-        (else_if
+        (block_body
           (variable_expr
-            (identifier))
-          (then
+            (identifier)))
+        (else_if
+          (parenthesized_expr
             (expr_body
               (variable_expr
-                (identifier)))))
+                (identifier))))
+          (block_body
+            (variable_expr
+              (identifier))))
         (else
-          (expr_body
+          (block_body
             (variable_expr
               (identifier))))))))
 
 ================================================================================
 if_indent
 ================================================================================
-a= if a then b else c
-a= if a then b
-  else if
-    a_2 
-then c else d
-a= if a then b else
- if a_2 then c else d
+a=
+  if a
+    b
+  else
+    c
 --------------------------------------------------------------------------------
 
 (file
@@ -67,69 +68,20 @@ a= if a then b else
       (if_expr
         (variable_expr
           (identifier))
-        (then
-          (expr_body
-            (variable_expr
-              (identifier))))
-        (else
-          (expr_body
-            (variable_expr
-              (identifier)))))))
-  (value_declaration
-    (decl_left
-      (identifier_pattern
-        (identifier)))
-    (expr_body
-      (if_expr
-        (variable_expr
-          (identifier))
-        (then
-          (expr_body
-            (variable_expr
-              (identifier))))
-        (else_if
+        (expr_body
           (variable_expr
-            (identifier))
-          (then
-            (expr_body
-              (variable_expr
-                (identifier)))))
+            (identifier)))
         (else
           (expr_body
             (variable_expr
-              (identifier)))))))
-  (value_declaration
-    (decl_left
-      (identifier_pattern
-        (identifier)))
-    (expr_body
-      (if_expr
-        (variable_expr
-          (identifier))
-        (then
-          (expr_body
-            (variable_expr
-              (identifier))))
-        (else
-          (expr_body
-            (if_expr
-              (variable_expr
-                (identifier))
-              (then
-                (expr_body
-                  (variable_expr
-                    (identifier))))
-              (else
-                (expr_body
-                  (variable_expr
-                    (identifier)))))))))))
+              (identifier))))))))
 
 ================================================================================
 if_nested
 ================================================================================
-a= 
-  if a then
-    if a then b else c
+a=
+  if a
+    if (a) { b } else { c }
   else c
 --------------------------------------------------------------------------------
 
@@ -142,19 +94,19 @@ a=
       (if_expr
         (variable_expr
           (identifier))
-        (then
-          (expr_body
-            (if_expr
+        (expr_body
+          (if_expr
+            (parenthesized_expr
+              (expr_body
+                (variable_expr
+                  (identifier))))
+            (block_body
               (variable_expr
-                (identifier))
-              (then
-                (expr_body
-                  (variable_expr
-                    (identifier))))
-              (else
-                (expr_body
-                  (variable_expr
-                    (identifier)))))))
+                (identifier)))
+            (else
+              (block_body
+                (variable_expr
+                  (identifier))))))
         (else
           (expr_body
             (variable_expr
@@ -163,9 +115,9 @@ a=
 ================================================================================
 if_variable_nested
 ================================================================================
-a= 
-  if a then
-    c= 
+a=
+  if a
+    c=
       10
     c
   else c
@@ -180,17 +132,16 @@ a=
       (if_expr
         (variable_expr
           (identifier))
-        (then
-          (expr_body
-            (value_declaration
-              (decl_left
-                (identifier_pattern
-                  (identifier)))
-              (expr_body
-                (const
-                  (int))))
-            (variable_expr
-              (identifier))))
+        (expr_body
+          (value_declaration
+            (decl_left
+              (identifier_pattern
+                (identifier)))
+            (expr_body
+              (const
+                (int))))
+          (variable_expr
+            (identifier)))
         (else
           (expr_body
             (variable_expr

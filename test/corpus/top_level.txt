@@ -27,12 +27,12 @@ big comment
 ================================================================================
 expr
 ================================================================================
-if a then
+if a
   "hi"
 else
    1
 myFunc a b c
-myFunc 
+myFunc
   a
   b
   c
@@ -44,10 +44,9 @@ myFunc
     (if_expr
       (variable_expr
         (identifier))
-      (then
-        (expr_body
-          (const
-            (string))))
+      (expr_body
+        (const
+          (string)))
       (else
         (expr_body
           (const

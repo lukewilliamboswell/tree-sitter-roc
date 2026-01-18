@@ -27,11 +27,11 @@ a = {b:10,c:inp,d}
 ================================================================================
 record_expr
 ================================================================================
-a = 
+a =
   {
     b:10,
     c:
-      if a then
+      if a
         d
       else
         v
@@ -56,10 +56,9 @@ a =
             (if_expr
               (variable_expr
                 (identifier))
-              (then
-                (expr_body
-                  (variable_expr
-                    (identifier))))
+              (expr_body
+                (variable_expr
+                  (identifier)))
               (else
                 (expr_body
                   (variable_expr
