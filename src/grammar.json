@@ -3975,13 +3975,79 @@
       }
     },
     "apply_type_args": {
-      "type": "PREC_RIGHT",
-      "value": 0,
-      "content": {
-        "type": "REPEAT1",
-        "content": {
+      "type": "CHOICE",
+      "members": [
+        {
           "type": "SYMBOL",
-          "name": "apply_type_arg"
+          "name": "paren_type_args"
+        },
+        {
+          "type": "PREC_RIGHT",
+          "value": 0,
+          "content": {
+            "type": "REPEAT1",
+            "content": {
+              "type": "SYMBOL",
+              "name": "apply_type_arg"
+            }
+          }
+        }
+      ]
+    },
+    "paren_type_args": {
+      "type": "PREC_DYNAMIC",
+      "value": 100,
+      "content": {
+        "type": "PREC_RIGHT",
+        "value": 100,
+        "content": {
+          "type": "SEQ",
+          "members": [
+            {
+              "type": "STRING",
+              "value": "("
+            },
+            {
+              "type": "SYMBOL",
+              "name": "_type_annotation"
+            },
+            {
+              "type": "REPEAT",
+              "content": {
+                "type": "PREC_RIGHT",
+                "value": 100,
+                "content": {
+                  "type": "SEQ",
+                  "members": [
+                    {
+                      "type": "STRING",
+                      "value": ","
+                    },
+                    {
+                      "type": "SYMBOL",
+                      "name": "_type_annotation"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "type": "CHOICE",
+              "members": [
+                {
+                  "type": "STRING",
+                  "value": ","
+                },
+                {
+                  "type": "BLANK"
+                }
+              ]
+            },
+            {
+              "type": "STRING",
+              "value": ")"
+            }
+          ]
         }
       }
     },
@@ -4822,6 +4888,14 @@
       "record_field_builder",
       "record_field_pattern",
       "annotation_pre_colon"
+    ],
+    [
+      "parenthesized_type",
+      "paren_type_args"
+    ],
+    [
+      "tuple_type",
+      "paren_type_args"
     ]
   ],
   "precedences": [],

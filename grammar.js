@@ -63,6 +63,9 @@ module.exports = grammar({
 		// Block body conflicts (for lambda bodies with { })
 		[$.long_identifier, $.record_field_expr, $.record_field_pattern],
 		[$.record_field_expr, $.record_field_builder, $.record_field_pattern, $.annotation_pre_colon],
+		// Type arguments vs parenthesized type: List(a) vs (Type)
+		[$.parenthesized_type, $.paren_type_args],
+		[$.tuple_type, $.paren_type_args],
 	],
 
 	words: ($) => /\s+/,
@@ -762,8 +765,29 @@ module.exports = grammar({
 				),
 			),
 
-		//we need a n optional \n to stop this eating the value that follows it
-		apply_type_args: ($) => prec.right(repeat1($.apply_type_arg)),
+		// Type arguments: List(a, b) or List a b (space-separated for backwards compat)
+		apply_type_args: ($) =>
+			choice(
+				// New parenthesized syntax: List(a, b)
+				$.paren_type_args,
+				// Old space-separated syntax: List a b
+				prec.right(repeat1($.apply_type_arg)),
+			),
+
+		paren_type_args: ($) =>
+			prec.dynamic(
+				100,
+				prec.right(
+					100,
+					seq(
+						"(",
+						$._type_annotation,
+						repeat(prec.right(100, seq(",", $._type_annotation))),
+						optional(","),
+						")",
+					),
+				),
+			),
 
 		apply_type_arg: ($) => prec.left($._type_annotation_no_fun),
 

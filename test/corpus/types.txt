@@ -401,3 +401,49 @@ A2 b2 c2 : B2 b2 c2
           (bound_variable))
         (apply_type_arg
           (bound_variable))))))
+
+================================================================================
+types_paren_generic
+================================================================================
+foo : List(a) -> List(a)
+--------------------------------------------------------------------------------
+
+(file
+  (annotation_type_def
+    (annotation_pre_colon
+      (identifier))
+    (function_type
+      (apply_type
+        (concrete_type)
+        (apply_type_args
+          (paren_type_args
+            (bound_variable))))
+      (arrow)
+      (apply_type
+        (concrete_type)
+        (apply_type_args
+          (paren_type_args
+            (bound_variable)))))))
+
+================================================================================
+types_paren_generic_multi
+================================================================================
+foo : Result(Ok, Err) -> Bool
+--------------------------------------------------------------------------------
+
+(file
+  (annotation_type_def
+    (annotation_pre_colon
+      (identifier))
+    (function_type
+      (apply_type
+        (concrete_type)
+        (apply_type_args
+          (paren_type_args
+            (apply_type
+              (concrete_type))
+            (apply_type
+              (concrete_type)))))
+      (arrow)
+      (apply_type
+        (concrete_type)))))
