@@ -17,27 +17,256 @@ Dot-suffix unsigned integers
         (field_name)
         (expr_body
           (const
-            (uint_dot))))
+            (number_with_suffix))))
       (record_field_expr
         (field_name)
         (expr_body
           (const
-            (uint_dot))))
+            (number_with_suffix))))
       (record_field_expr
         (field_name)
         (expr_body
           (const
-            (uint_dot))))
+            (number_with_suffix))))
       (record_field_expr
         (field_name)
         (expr_body
           (const
-            (uint_dot))))
+            (number_with_suffix))))
       (record_field_expr
         (field_name)
         (expr_body
           (const
-            (uint_dot)))))))
+            (number_with_suffix)))))))
+
+===
+Signed numeric literals in records
+===
+values = {
+  int: -1,
+  decimal: -1.25,
+  exponent: -1e3,
+  hex: -0xFF,
+  octal: -0o77,
+  binary: -0b101,
+  typed: -123.I64,
+  typedDecimal: -12.5.Dec,
+}
+---
+
+(file
+  (value_declaration
+    (decl_left
+      (identifier_pattern
+        (identifier)))
+    (expr_body
+      (record_expr
+        (record_field_expr
+          (field_name)
+          (expr_body
+            (const
+              (negative_number
+                (int)))))
+        (record_field_expr
+          (field_name)
+          (expr_body
+            (const
+              (negative_number
+                (float)))))
+        (record_field_expr
+          (field_name)
+          (expr_body
+            (const
+              (negative_number
+                (float)))))
+        (record_field_expr
+          (field_name)
+          (expr_body
+            (const
+              (negative_number
+                (xint)))))
+        (record_field_expr
+          (field_name)
+          (expr_body
+            (const
+              (negative_number
+                (xint)))))
+        (record_field_expr
+          (field_name)
+          (expr_body
+            (const
+              (negative_number
+                (xint)))))
+        (record_field_expr
+          (field_name)
+          (expr_body
+            (const
+              (negative_number
+                (number_with_suffix)))))
+        (record_field_expr
+          (field_name)
+          (expr_body
+            (const
+              (negative_number
+                (number_with_suffix)))))))))
+
+===
+Negative numeric patterns
+===
+classify = |value| match value {
+  -1 => Int,
+  -1.5 => Decimal,
+  -1e3 => Exponent,
+  -0xFF => Hex,
+  -0o77 => Octal,
+  -0b101 => Binary,
+  -123.I64 => Typed,
+  _ => Other,
+}
+---
+
+(file
+  (value_declaration
+    (decl_left
+      (identifier_pattern
+        (identifier)))
+    (expr_body
+      (anon_fun_expr
+        (argument_patterns
+          (identifier_pattern
+            (identifier)))
+        (expr_body
+          (match_expr
+            (match)
+            (variable_expr
+              (identifier))
+            (match_branch
+              (const_pattern
+                (negative_number
+                  (int)))
+              (fat_arrow)
+              (expr_body
+                (tag_expr
+                  (tag
+                    (identifier)))))
+            (match_branch
+              (const_pattern
+                (negative_number
+                  (float)))
+              (fat_arrow)
+              (expr_body
+                (tag_expr
+                  (tag
+                    (identifier)))))
+            (match_branch
+              (const_pattern
+                (negative_number
+                  (float)))
+              (fat_arrow)
+              (expr_body
+                (tag_expr
+                  (tag
+                    (identifier)))))
+            (match_branch
+              (const_pattern
+                (negative_number
+                  (xint)))
+              (fat_arrow)
+              (expr_body
+                (tag_expr
+                  (tag
+                    (identifier)))))
+            (match_branch
+              (const_pattern
+                (negative_number
+                  (xint)))
+              (fat_arrow)
+              (expr_body
+                (tag_expr
+                  (tag
+                    (identifier)))))
+            (match_branch
+              (const_pattern
+                (negative_number
+                  (xint)))
+              (fat_arrow)
+              (expr_body
+                (tag_expr
+                  (tag
+                    (identifier)))))
+            (match_branch
+              (const_pattern
+                (negative_number
+                  (number_with_suffix)))
+              (fat_arrow)
+              (expr_body
+                (tag_expr
+                  (tag
+                    (identifier)))))
+            (match_branch
+              (wildcard_pattern)
+              (fat_arrow)
+              (expr_body
+                (tag_expr
+                  (tag
+                    (identifier)))))))))))
+
+===
+Negative if branches preserve subtraction
+===
+spaced = 10 - 3
+tight = 10-3
+sign = |value| if value < 0 -1 else -2.5
+---
+
+(file
+  (value_declaration
+    (decl_left
+      (identifier_pattern
+        (identifier)))
+    (expr_body
+      (bin_op_expr
+        (const
+          (int))
+        (operator)
+        (const
+          (int)))))
+  (value_declaration
+    (decl_left
+      (identifier_pattern
+        (identifier)))
+    (expr_body
+      (bin_op_expr
+        (const
+          (int))
+        (operator)
+        (const
+          (int)))))
+  (value_declaration
+    (decl_left
+      (identifier_pattern
+        (identifier)))
+    (expr_body
+      (anon_fun_expr
+        (argument_patterns
+          (identifier_pattern
+            (identifier)))
+        (expr_body
+          (if_expr
+            (bin_op_expr
+              (variable_expr
+                (identifier))
+              (operator)
+              (const
+                (int)))
+            (then
+              (const
+                (negative_number
+                  (int))))
+            (else
+              (const
+                (negative_number
+                  (float))))))))))
 
 ===
 Dot-suffix signed integers
@@ -58,27 +287,27 @@ Dot-suffix signed integers
         (field_name)
         (expr_body
           (const
-            (iint_dot))))
+            (number_with_suffix))))
       (record_field_expr
         (field_name)
         (expr_body
           (const
-            (iint_dot))))
+            (number_with_suffix))))
       (record_field_expr
         (field_name)
         (expr_body
           (const
-            (iint_dot))))
+            (number_with_suffix))))
       (record_field_expr
         (field_name)
         (expr_body
           (const
-            (iint_dot))))
+            (number_with_suffix))))
       (record_field_expr
         (field_name)
         (expr_body
           (const
-            (iint_dot)))))))
+            (number_with_suffix)))))))
 
 ===
 Dot-suffix decimal
@@ -95,7 +324,7 @@ Dot-suffix decimal
         (field_name)
         (expr_body
           (const
-            (decimal_dot)))))))
+            (number_with_suffix)))))))
 
 ===
 Dot-suffix negative numbers
@@ -121,69 +350,69 @@ Dot-suffix negative numbers
       (record_field_expr
         (field_name)
         (expr_body
-          (prefixed_expression
-            (const
-              (uint_dot)))))
+          (const
+            (negative_number
+              (number_with_suffix)))))
       (record_field_expr
         (field_name)
         (expr_body
-          (prefixed_expression
-            (const
-              (uint_dot)))))
+          (const
+            (negative_number
+              (number_with_suffix)))))
       (record_field_expr
         (field_name)
         (expr_body
-          (prefixed_expression
-            (const
-              (uint_dot)))))
+          (const
+            (negative_number
+              (number_with_suffix)))))
       (record_field_expr
         (field_name)
         (expr_body
-          (prefixed_expression
-            (const
-              (uint_dot)))))
+          (const
+            (negative_number
+              (number_with_suffix)))))
       (record_field_expr
         (field_name)
         (expr_body
-          (prefixed_expression
-            (const
-              (uint_dot)))))
+          (const
+            (negative_number
+              (number_with_suffix)))))
       (record_field_expr
         (field_name)
         (expr_body
-          (prefixed_expression
-            (const
-              (iint_dot)))))
+          (const
+            (negative_number
+              (number_with_suffix)))))
       (record_field_expr
         (field_name)
         (expr_body
-          (prefixed_expression
-            (const
-              (iint_dot)))))
+          (const
+            (negative_number
+              (number_with_suffix)))))
       (record_field_expr
         (field_name)
         (expr_body
-          (prefixed_expression
-            (const
-              (iint_dot)))))
+          (const
+            (negative_number
+              (number_with_suffix)))))
       (record_field_expr
         (field_name)
         (expr_body
-          (prefixed_expression
-            (const
-              (iint_dot)))))
+          (const
+            (negative_number
+              (number_with_suffix)))))
       (record_field_expr
         (field_name)
         (expr_body
-          (prefixed_expression
-            (const
-              (iint_dot)))))
+          (const
+            (negative_number
+              (number_with_suffix)))))
       (record_field_expr
         (field_name)
         (expr_body
-          (prefixed_expression
-            (const
-              (decimal_dot))))))))
+          (const
+            (negative_number
+              (number_with_suffix))))))))
 
 ===
 Dot-suffix binary numbers
@@ -209,52 +438,52 @@ Dot-suffix binary numbers
         (field_name)
         (expr_body
           (const
-            (xint_dot))))
+            (number_with_suffix))))
       (record_field_expr
         (field_name)
         (expr_body
           (const
-            (xint_dot))))
+            (number_with_suffix))))
       (record_field_expr
         (field_name)
         (expr_body
           (const
-            (xint_dot))))
+            (number_with_suffix))))
       (record_field_expr
         (field_name)
         (expr_body
           (const
-            (xint_dot))))
+            (number_with_suffix))))
       (record_field_expr
         (field_name)
         (expr_body
           (const
-            (xint_dot))))
+            (number_with_suffix))))
       (record_field_expr
         (field_name)
         (expr_body
           (const
-            (xint_dot))))
+            (number_with_suffix))))
       (record_field_expr
         (field_name)
         (expr_body
           (const
-            (xint_dot))))
+            (number_with_suffix))))
       (record_field_expr
         (field_name)
         (expr_body
           (const
-            (xint_dot))))
+            (number_with_suffix))))
       (record_field_expr
         (field_name)
         (expr_body
           (const
-            (xint_dot))))
+            (number_with_suffix))))
       (record_field_expr
         (field_name)
         (expr_body
           (const
-            (xint_dot)))))))
+            (number_with_suffix)))))))
 
 ===
 Dot-suffix hex numbers
@@ -273,46 +502,17 @@ Dot-suffix hex numbers
         (field_name)
         (expr_body
           (const
-            (xint_dot))))
+            (number_with_suffix))))
       (record_field_expr
         (field_name)
         (expr_body
           (const
-            (xint_dot))))
+            (number_with_suffix))))
       (record_field_expr
         (field_name)
         (expr_body
           (const
-            (xint_dot)))))))
-
-===
-Old immediate suffix format still works
-===
-{
-  oldU8: 123u8,
-  oldI32: 456i32,
-  oldDec: 789dec,
-}
----
-
-(file
-  (expr_body
-    (record_expr
-      (record_field_expr
-        (field_name)
-        (expr_body
-          (const
-            (uint))))
-      (record_field_expr
-        (field_name)
-        (expr_body
-          (const
-            (iint))))
-      (record_field_expr
-        (field_name)
-        (expr_body
-          (const
-            (decimal)))))))
+            (number_with_suffix)))))))
 
 ===
 nums_literals
@@ -504,3 +704,57 @@ number_literals = {
           (expr_body
             (const
               (xint))))))))
+
+===
+Modern generic numeric suffixes and numeric cores
+===
+{
+  custom: 123.Foo,
+  fraction: 1.5.F64,
+  negative: -1.0.F64,
+  exponent: 1E+2,
+  typedExponent: 3E2.Dec,
+  hex: 0xAB_CD,
+  octalTyped: 0o7_1.I64,
+}
+---
+
+(file
+  (expr_body
+    (record_expr
+      (record_field_expr
+        (field_name)
+        (expr_body
+          (const
+            (number_with_suffix))))
+      (record_field_expr
+        (field_name)
+        (expr_body
+          (const
+            (number_with_suffix))))
+      (record_field_expr
+        (field_name)
+        (expr_body
+          (const
+            (negative_number
+              (number_with_suffix)))))
+      (record_field_expr
+        (field_name)
+        (expr_body
+          (const
+            (float))))
+      (record_field_expr
+        (field_name)
+        (expr_body
+          (const
+            (number_with_suffix))))
+      (record_field_expr
+        (field_name)
+        (expr_body
+          (const
+            (xint))))
+      (record_field_expr
+        (field_name)
+        (expr_body
+          (const
+            (number_with_suffix)))))))

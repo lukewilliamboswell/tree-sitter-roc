@@ -373,3 +373,1392 @@ expect 1 + 1 == 2
         part: (operator)
         part: (const
           (int))))))
+
+================================================================================
+nominal constructors and patterns
+================================================================================
+# From basic-webserver and roc-ray.
+wrap = |value| RoutePath.(value)
+unwrap = |RoutePath.(value)| value
+qualified = Module.Name.(value)
+--------------------------------------------------------------------------------
+
+(file
+  (line_comment)
+  (value_declaration
+    (decl_left
+      (identifier_pattern
+        (identifier)))
+    (expr_body
+      (anon_fun_expr
+        (argument_patterns
+          (identifier_pattern
+            (identifier)))
+        (expr_body
+          (nominal_constructor_expr
+            (tag
+              (identifier))
+            (expr_body
+              (variable_expr
+                (identifier))))))))
+  (value_declaration
+    (decl_left
+      (identifier_pattern
+        (identifier)))
+    (expr_body
+      (anon_fun_expr
+        (argument_patterns
+          (nominal_constructor_pattern
+            (tag
+              (identifier))
+            (identifier_pattern
+              (identifier))))
+        (expr_body
+          (variable_expr
+            (identifier))))))
+  (value_declaration
+    (decl_left
+      (identifier_pattern
+        (identifier)))
+    (expr_body
+      (nominal_constructor_expr
+        (tag
+          (module)
+          (identifier))
+        (expr_body
+          (variable_expr
+            (identifier)))))))
+
+================================================================================
+suffix record builder
+================================================================================
+# From roc-random/examples/record-builder.roc.
+generator = { value: source }.Random
+--------------------------------------------------------------------------------
+
+(file
+  (line_comment)
+  (value_declaration
+    (decl_left
+      (identifier_pattern
+        (identifier)))
+    (expr_body
+      (record_expr
+        (record_field_expr
+          (field_name)
+          (expr_body
+            (variable_expr
+              (identifier))))
+        (record_builder_suffix)))))
+
+================================================================================
+crash expression
+================================================================================
+required = crash "missing"
+--------------------------------------------------------------------------------
+
+(file
+  (value_declaration
+    (decl_left
+      (identifier_pattern
+        (identifier)))
+    (expr_body
+      (crash_expr
+        (expr_body
+          (const
+            (string)))))))
+
+================================================================================
+while loop and break
+================================================================================
+loop = || {
+    while condition {
+        if done { break } else { {} }
+    }
+}
+--------------------------------------------------------------------------------
+
+(file
+  (value_declaration
+    (decl_left
+      (identifier_pattern
+        (identifier)))
+    (expr_body
+      (anon_fun_expr
+        (expr_body
+          (body_expression
+            (while_expr
+              (variable_expr
+                (identifier))
+              (body_expression
+                (if_expr
+                  (variable_expr
+                    (identifier))
+                  (then
+                    (body_expression
+                      (break_expr)))
+                  (else
+                    (body_expression
+                      (body_expression))))))))))))
+
+================================================================================
+tuple positional access
+================================================================================
+first = (left, right).0
+second = record.point.1
+--------------------------------------------------------------------------------
+
+(file
+  (value_declaration
+    (decl_left
+      (identifier_pattern
+        (identifier)))
+    (expr_body
+      (tuple_access_expr
+        (tuple_expr
+          (variable_expr
+            (identifier))
+          (variable_expr
+            (identifier)))
+        (int))))
+  (value_declaration
+    (decl_left
+      (identifier_pattern
+        (identifier)))
+    (expr_body
+      (tuple_access_expr
+        (field_access_expr
+          (variable_expr
+            (identifier))
+          (identifier))
+        (int)))))
+
+================================================================================
+lowercase Unicode escape
+================================================================================
+escape = "\u(001b)"
+--------------------------------------------------------------------------------
+
+(file
+  (value_declaration
+    (decl_left
+      (identifier_pattern
+        (identifier)))
+    (expr_body
+      (const
+        (string
+          (escape_char))))))
+
+================================================================================
+nominal record construction
+================================================================================
+# From roc-pdf gate-4 and the modern language reference.
+point = Point.{ x: 1, y: 2 }
+qualified = Kernel.Plan.{ ready: True }
+--------------------------------------------------------------------------------
+
+(file
+  (line_comment)
+  (value_declaration
+    (decl_left
+      (identifier_pattern
+        (identifier)))
+    (expr_body
+      (nominal_record_expr
+        (tag
+          (identifier))
+        (record_field_expr
+          (field_name)
+          (expr_body
+            (const
+              (int))))
+        (record_field_expr
+          (field_name)
+          (expr_body
+            (const
+              (int)))))))
+  (value_declaration
+    (decl_left
+      (identifier_pattern
+        (identifier)))
+    (expr_body
+      (nominal_record_expr
+        (tag
+          (module)
+          (identifier))
+        (record_field_expr
+          (field_name)
+          (expr_body
+            (tag_expr
+              (tag
+                (identifier)))))))))
+
+================================================================================
+uppercase header exports
+================================================================================
+package [Header, Method, parse] {}
+value = 1
+--------------------------------------------------------------------------------
+
+(file
+  (package_header
+    (provides_list
+      (module)
+      (module)
+      (identifier))
+    (packages_list))
+  (value_declaration
+    (decl_left
+      (identifier_pattern
+        (identifier)))
+    (expr_body
+      (const
+        (int)))))
+
+================================================================================
+statement if without else
+================================================================================
+guard = |condition| {
+    if condition { return Err(BadCondition) }
+    Ok({})
+}
+--------------------------------------------------------------------------------
+
+(file
+  (value_declaration
+    (decl_left
+      (identifier_pattern
+        (identifier)))
+    (expr_body
+      (anon_fun_expr
+        (argument_patterns
+          (identifier_pattern
+            (identifier)))
+        (expr_body
+          (body_expression
+            (if_expr
+              (variable_expr
+                (identifier))
+              (then
+                (body_expression
+                  (early_return_expr
+                    (expr_body
+                      (function_call_pnc_expr
+                        (tag_expr
+                          (tag
+                            (identifier)))
+                        (tag_expr
+                          (tag
+                            (identifier)))))))))
+            (function_call_pnc_expr
+              (tag_expr
+                (tag
+                  (identifier)))
+              (body_expression))))))))
+
+================================================================================
+function type as type argument
+================================================================================
+continuation : Box(U64 => StepToHost)
+--------------------------------------------------------------------------------
+
+(file
+  (annotation_type_def
+    (annotation_pre_colon
+      (identifier))
+    (apply_type
+      (concrete_type)
+      (apply_type_arg
+        (function_type
+          (apply_type
+            (concrete_type))
+          (fat_arrow)
+          (apply_type
+            (concrete_type)))))))
+
+================================================================================
+direct record rest pattern
+================================================================================
+remove_email = |{ email: _, ..rest }| rest
+--------------------------------------------------------------------------------
+
+(file
+  (value_declaration
+    (decl_left
+      (identifier_pattern
+        (identifier)))
+    (expr_body
+      (anon_fun_expr
+        (argument_patterns
+          (record_pattern
+            (record_field_pattern
+              (field_name)
+              (wildcard_pattern))
+            (spread_pattern
+              (identifier))))
+        (expr_body
+          (variable_expr
+            (identifier)))))))
+
+================================================================================
+pipeline before fallback
+================================================================================
+masked = bytes |> Str.from_utf8 ?? "****"
+--------------------------------------------------------------------------------
+
+(file
+  (value_declaration
+    (decl_left
+      (identifier_pattern
+        (identifier)))
+    (expr_body
+      (bin_op_expr
+        (variable_expr
+          (identifier))
+        (operator)
+        (variable_expr
+          (module)
+          (identifier))
+        (operator)
+        (const
+          (string))))))
+
+================================================================================
+optional defaulted and unset record fields
+================================================================================
+# Syntax from roc PRs 10320 and 10834.
+Config := { name ?: Str, count : U8 ?? 10 }
+config = { name: _, count: 1 }
+name = config.?name
+nested = outer.?config.value
+--------------------------------------------------------------------------------
+
+(file
+  (line_comment)
+  (nominal_type_def
+    (apply_type
+      (concrete_type))
+    (colon_equals)
+    (record_type
+      (record_field_type
+        (field_name)
+        (optional_field)
+        (apply_type
+          (concrete_type)))
+      (record_field_type
+        (field_name)
+        (apply_type
+          (concrete_type))
+        (default_value)
+        (expr_body
+          (const
+            (int))))))
+  (value_declaration
+    (decl_left
+      (identifier_pattern
+        (identifier)))
+    (expr_body
+      (record_expr
+        (record_field_expr
+          (field_name)
+          (unset_record_field))
+        (record_field_expr
+          (field_name)
+          (expr_body
+            (const
+              (int)))))))
+  (value_declaration
+    (decl_left
+      (identifier_pattern
+        (identifier)))
+    (expr_body
+      (field_access_expr
+        (variable_expr
+          (identifier))
+        (optional_access)
+        (identifier))))
+  (value_declaration
+    (decl_left
+      (identifier_pattern
+        (identifier)))
+    (expr_body
+      (field_access_expr
+        (field_access_expr
+          (variable_expr
+            (identifier))
+          (optional_access)
+          (identifier))
+        (identifier)))))
+
+================================================================================
+effectful main combines optional fields and fallback
+================================================================================
+main! = |_| {
+    rec : { foo ?: Dict(U64, U64) }
+    rec = {}
+    rec_foo = rec.?foo ?? Dict.empty()
+    dbg rec_foo.len()
+    Ok({})
+}
+--------------------------------------------------------------------------------
+
+(file
+  (value_declaration
+    (decl_left
+      (identifier_pattern
+        (identifier)))
+    (expr_body
+      (anon_fun_expr
+        (argument_patterns
+          (wildcard_pattern))
+        (expr_body
+          (body_expression
+            (value_declaration
+              (annotation_type_def
+                (annotation_pre_colon
+                  (identifier))
+                (record_type
+                  (record_field_type
+                    (field_name)
+                    (optional_field)
+                    (apply_type
+                      (concrete_type)
+                      (apply_type_arg
+                        (apply_type
+                          (concrete_type)))
+                      (apply_type_arg
+                        (apply_type
+                          (concrete_type)))))))
+              (decl_left
+                (identifier_pattern
+                  (identifier)))
+              (expr_body
+                (body_expression)))
+            (value_declaration
+              (decl_left
+                (identifier_pattern
+                  (identifier)))
+              (expr_body
+                (bin_op_expr
+                  (field_access_expr
+                    (variable_expr
+                      (identifier))
+                    (optional_access)
+                    (identifier))
+                  (operator)
+                  (function_call_pnc_expr
+                    (variable_expr
+                      (module)
+                      (identifier))))))
+            (dbg_expr
+              (expr_body
+                (function_call_pnc_expr
+                  (field_access_expr
+                    (variable_expr
+                      (identifier))
+                    (identifier)))))
+            (function_call_pnc_expr
+              (tag_expr
+                (tag
+                  (identifier)))
+              (body_expression))))))))
+
+================================================================================
+nominal record destructuring
+================================================================================
+# Syntax merged in roc PR 10190.
+get_x = |Stack.{ x }| x
+--------------------------------------------------------------------------------
+
+(file
+  (line_comment)
+  (value_declaration
+    (decl_left
+      (identifier_pattern
+        (identifier)))
+    (expr_body
+      (anon_fun_expr
+        (argument_patterns
+          (nominal_record_pattern
+            (tag
+              (identifier))
+            (record_field_pattern
+              (field_name))))
+        (expr_body
+          (variable_expr
+            (identifier)))))))
+
+================================================================================
+nominal tuple backing constructor
+================================================================================
+pair = Pair.(1, "two")
+--------------------------------------------------------------------------------
+
+(file
+  (value_declaration
+    (decl_left
+      (identifier_pattern
+        (identifier)))
+    (expr_body
+      (nominal_constructor_expr
+        (tag
+          (identifier))
+        (tuple_expr
+          (const
+            (int))
+          (const
+            (string)))))))
+
+================================================================================
+spaced try handler and immediate suffix
+================================================================================
+# From basic-cli examples.
+result = operation() ? |err| Wrapped(err)
+plain = operation()?
+--------------------------------------------------------------------------------
+
+(file
+  (line_comment)
+  (value_declaration
+    (decl_left
+      (identifier_pattern
+        (identifier)))
+    (expr_body
+      (bin_op_expr
+        (function_call_pnc_expr
+          (variable_expr
+            (identifier)))
+        (operator)
+        (anon_fun_expr
+          (argument_patterns
+            (identifier_pattern
+              (identifier)))
+          (expr_body
+            (function_call_pnc_expr
+              (tag_expr
+                (tag
+                  (identifier)))
+              (variable_expr
+                (identifier))))))))
+  (value_declaration
+    (decl_left
+      (identifier_pattern
+        (identifier)))
+    (expr_body
+      (suffix_op_expr
+        (function_call_pnc_expr
+          (variable_expr
+            (identifier)))
+        (suffix_operator)))))
+
+================================================================================
+fallback expression
+================================================================================
+# From roc-graph-layout and the modern language reference.
+value = items.get(index) ?? 0
+required = maybe_value ?? crash "missing"
+--------------------------------------------------------------------------------
+
+(file
+  (line_comment)
+  (value_declaration
+    (decl_left
+      (identifier_pattern
+        (identifier)))
+    (expr_body
+      (bin_op_expr
+        (function_call_pnc_expr
+          (field_access_expr
+            (variable_expr
+              (identifier))
+            (identifier))
+          (variable_expr
+            (identifier)))
+        (operator)
+        (const
+          (int)))))
+  (value_declaration
+    (decl_left
+      (identifier_pattern
+        (identifier)))
+    (expr_body
+      (bin_op_expr
+        (variable_expr
+          (identifier))
+        (operator)
+        (crash_expr
+          (expr_body
+            (const
+              (string))))))))
+
+================================================================================
+nullary function type
+================================================================================
+run! : () => {}
+--------------------------------------------------------------------------------
+
+(file
+  (annotation_type_def
+    (annotation_pre_colon
+      (identifier))
+    (function_type
+      (fat_arrow)
+      (record_type))))
+
+================================================================================
+relative module imports
+================================================================================
+# From the modern language reference and basic-webserver.
+import ./Internal/Parser
+import ../Shared/Codec as Codec
+import /Root/Module
+import ./Module/SubModule.Type.SubType as SomeOtherName exposing [Value]
+value = 1
+--------------------------------------------------------------------------------
+
+(file
+  (line_comment)
+  (import_expr
+    (import_path
+      (module)
+      (module)))
+  (import_expr
+    (import_path
+      (module)
+      (module))
+    (as)
+    (module))
+  (import_expr
+    (import_path
+      (module)
+      (module)))
+  (import_expr
+    (import_path
+      (module)
+      (module)
+      (module)
+      (module))
+    (as)
+    (module)
+    (exposing
+      (ident
+        (module))))
+  (value_declaration
+    (decl_left
+      (identifier_pattern
+        (identifier)))
+    (expr_body
+      (const
+        (int)))))
+
+================================================================================
+inline if with a negative result
+================================================================================
+sign = |value| if value < 0 -1 else 1
+--------------------------------------------------------------------------------
+
+(file
+  (value_declaration
+    (decl_left
+      (identifier_pattern
+        (identifier)))
+    (expr_body
+      (anon_fun_expr
+        (argument_patterns
+          (identifier_pattern
+            (identifier)))
+        (expr_body
+          (if_expr
+            (bin_op_expr
+              (variable_expr
+                (identifier))
+              (operator)
+              (const
+                (int)))
+            (then
+              (const
+                (negative_number
+                  (int))))
+            (else
+              (const
+                (int)))))))))
+
+================================================================================
+local type binding
+================================================================================
+encoder_for = |_encoding| {
+    Encoding : encoding
+    Encoding
+}
+--------------------------------------------------------------------------------
+
+(file
+  (value_declaration
+    (decl_left
+      (identifier_pattern
+        (identifier)))
+    (expr_body
+      (anon_fun_expr
+        (argument_patterns
+          (identifier_pattern
+            (identifier)))
+        (expr_body
+          (body_expression
+            (local_type_binding
+              (concrete_type)
+              (bound_variable))
+            (tag_expr
+              (tag
+                (identifier)))))))))
+
+================================================================================
+multi-parameter function types in record fields
+================================================================================
+Handlers(state, err) : {
+    fragment : Constraints, Continuation(state) -> Try(FragmentResult(state), err),
+    measure : Constraints, SourceId -> Try(Measurement, err),
+    resolve : Constraints,
+        state,
+        err -> Try(state, err),
+}
+--------------------------------------------------------------------------------
+
+(file
+  (alias_type_def
+    (apply_type
+      (concrete_type)
+      (apply_type_arg
+        (bound_variable))
+      (apply_type_arg
+        (bound_variable)))
+    (record_type
+      (record_field_type
+        (field_name)
+        (function_type
+          (apply_type
+            (concrete_type))
+          (apply_type
+            (concrete_type)
+            (apply_type_arg
+              (bound_variable)))
+          (arrow)
+          (apply_type
+            (concrete_type)
+            (apply_type_arg
+              (apply_type
+                (concrete_type)
+                (apply_type_arg
+                  (bound_variable))))
+            (apply_type_arg
+              (bound_variable)))))
+      (record_field_type
+        (field_name)
+        (function_type
+          (apply_type
+            (concrete_type))
+          (apply_type
+            (concrete_type))
+          (arrow)
+          (apply_type
+            (concrete_type)
+            (apply_type_arg
+              (apply_type
+                (concrete_type)))
+            (apply_type_arg
+              (bound_variable)))))
+      (record_field_type
+        (field_name)
+        (function_type
+          (apply_type
+            (concrete_type))
+          (bound_variable)
+          (bound_variable)
+          (arrow)
+          (apply_type
+            (concrete_type)
+            (apply_type_arg
+              (bound_variable))
+            (apply_type_arg
+              (bound_variable))))))))
+
+================================================================================
+modern platform header sections
+================================================================================
+platform ""
+    requires { main! : List(Str) => { bytes : List(U8) } }
+    exposes [Metrics]
+    packages {}
+    provides { "roc_main": main_for_host! }
+    hosted { "roc_host_reset_allocations": Metrics.reset_allocations! }
+    targets: { inputs_dir: "targets/", arm64mac: { inputs: [app] } }
+
+main_for_host! = |args| main!(args)
+--------------------------------------------------------------------------------
+
+(file
+  (platform_header
+    (name)
+    (platform_header_body
+      (requires
+        (requires_entries
+          (requires_entry
+            (typed_ident
+              (identifier)
+              (function_type
+                (apply_type
+                  (concrete_type)
+                  (apply_type_arg
+                    (apply_type
+                      (concrete_type))))
+                (fat_arrow)
+                (record_type
+                  (record_field_type
+                    (field_name)
+                    (apply_type
+                      (concrete_type)
+                      (apply_type_arg
+                        (apply_type
+                          (concrete_type)))))))))))
+      (platform_exposes
+        (platform_exposed_item
+          (module)))
+      (packages
+        (record_pattern))
+      (provides
+        (platform_symbol_map
+          (string)
+          (variable_expr
+            (identifier))))
+      (hosted
+        (platform_symbol_map
+          (string)
+          (variable_expr
+            (module)
+            (identifier))))
+      (targets
+        (record_expr
+          (record_field_expr
+            (field_name)
+            (expr_body
+              (const
+                (string))))
+          (record_field_expr
+            (field_name)
+            (expr_body
+              (record_expr
+                (record_field_expr
+                  (field_name)
+                  (expr_body
+                    (list_expr
+                      (variable_expr
+                        (identifier))))))))))))
+  (value_declaration
+    (decl_left
+      (identifier_pattern
+        (identifier)))
+    (expr_body
+      (anon_fun_expr
+        (argument_patterns
+          (identifier_pattern
+            (identifier)))
+        (expr_body
+          (function_call_pnc_expr
+            (variable_expr
+              (identifier))
+            (variable_expr
+              (identifier))))))))
+
+================================================================================
+platform requires for clause
+================================================================================
+platform ""
+    requires { [Model : model, State : state] for program : { init! : {} => model }, main! : () => {} }
+    exposes []
+    packages {}
+    provides {}
+
+main! = || {}
+--------------------------------------------------------------------------------
+
+(file
+  (platform_header
+    (name)
+    (platform_header_body
+      (requires
+        (requires_entries
+          (requires_entry
+            (requires_for_clause
+              (module)
+              (bound_variable)
+              (module)
+              (bound_variable)
+              (identifier)
+              (record_type
+                (record_field_type
+                  (field_name)
+                  (function_type
+                    (record_type)
+                    (fat_arrow)
+                    (bound_variable))))))
+          (requires_entry
+            (typed_ident
+              (identifier)
+              (function_type
+                (fat_arrow)
+                (record_type))))))
+      (platform_exposes)
+      (packages
+        (record_pattern))
+      (provides
+        (platform_symbol_map))))
+  (value_declaration
+    (decl_left
+      (identifier_pattern
+        (identifier)))
+    (expr_body
+      (anon_fun_expr
+        (expr_body
+          (body_expression))))))
+
+================================================================================
+modern identifier and lambda patterns
+================================================================================
+var! : OsStr => Str
+_shape = 1
+step = |var $state, value,| value
+--------------------------------------------------------------------------------
+
+(file
+  (value_declaration
+    (annotation_type_def
+      (annotation_pre_colon
+        (identifier))
+      (function_type
+        (apply_type
+          (concrete_type))
+        (fat_arrow)
+        (apply_type
+          (concrete_type))))
+    (decl_left
+      (identifier_pattern
+        (identifier)))
+    (expr_body
+      (const
+        (int))))
+  (value_declaration
+    (decl_left
+      (identifier_pattern
+        (identifier)))
+    (expr_body
+      (anon_fun_expr
+        (argument_patterns
+          (mutable_pattern
+            (identifier_pattern
+              (identifier)))
+          (identifier_pattern
+            (identifier)))
+        (expr_body
+          (variable_expr
+            (identifier)))))))
+
+================================================================================
+exhaustive assignment and generic as patterns
+================================================================================
+Prepared.(prepared) = config
+result = match value { { name } as person => person }
+--------------------------------------------------------------------------------
+
+(file
+  (value_declaration
+    (decl_left
+      (nominal_constructor_pattern
+        (tag
+          (identifier))
+        (identifier_pattern
+          (identifier))))
+    (expr_body
+      (variable_expr
+        (identifier))))
+  (value_declaration
+    (decl_left
+      (identifier_pattern
+        (identifier)))
+    (expr_body
+      (match_expr
+        (match)
+        (variable_expr
+          (identifier))
+        (match_branch
+          (as_pattern
+            (record_pattern
+              (record_field_pattern
+                (field_name)))
+            (identifier))
+          (fat_arrow)
+          (expr_body
+            (variable_expr
+              (identifier))))))))
+
+================================================================================
+typed string and compound fallback
+================================================================================
+method = "POST".HttpMethod
+count = counts.get(slot) ?? RouteInternals.zero_count + 1
+--------------------------------------------------------------------------------
+
+(file
+  (value_declaration
+    (decl_left
+      (identifier_pattern
+        (identifier)))
+    (expr_body
+      (const
+        (typed_string
+          (string)
+          (literal_type_suffix)))))
+  (value_declaration
+    (decl_left
+      (identifier_pattern
+        (identifier)))
+    (expr_body
+      (bin_op_expr
+        (function_call_pnc_expr
+          (field_access_expr
+            (variable_expr
+              (identifier))
+            (identifier))
+          (variable_expr
+            (identifier)))
+        (operator)
+        (variable_expr
+          (module)
+          (identifier))
+        (operator)
+        (const
+          (int))))))
+
+================================================================================
+relative import with lowercase directory
+================================================================================
+import ./datastar/Datastar
+value = 1
+--------------------------------------------------------------------------------
+
+(file
+  (import_expr
+    (import_path
+      (identifier)
+      (module)))
+  (value_declaration
+    (decl_left
+      (identifier_pattern
+        (identifier)))
+    (expr_body
+      (const
+        (int)))))
+
+================================================================================
+postfix chains bind before prefix operators
+================================================================================
+## Standard always carries the PDF 2.0 claim.
+expect Conformance.claims_for_profile(Standard).pdf20
+
+## Standard does not silently add the archival claim.
+expect !Conformance.claims_for_profile(Standard).static_pdf_a4
+--------------------------------------------------------------------------------
+
+(file
+  (doc_comment)
+  (expect
+    (expr_body
+      (field_access_expr
+        (function_call_pnc_expr
+          (variable_expr
+            (module)
+            (identifier))
+          (tag_expr
+            (tag
+              (identifier))))
+        (identifier))))
+  (doc_comment)
+  (expect
+    (expr_body
+      (prefixed_expression
+        (field_access_expr
+          (function_call_pnc_expr
+            (variable_expr
+              (module)
+              (identifier))
+            (tag_expr
+              (tag
+                (identifier))))
+          (identifier))))))
+
+================================================================================
+pipe question suffix precedence
+================================================================================
+with_call = a |> f()?
+without_call = a |> f?
+ordinary_call = a + f()?
+pipe_chain = a |> f()? |> g()?
+--------------------------------------------------------------------------------
+
+(file
+  (value_declaration
+    (decl_left
+      (identifier_pattern
+        (identifier)))
+    (expr_body
+      (suffix_op_expr
+        (bin_op_expr
+          (variable_expr
+            (identifier))
+          (operator)
+          (function_call_pnc_expr
+            (variable_expr
+              (identifier))))
+        (suffix_operator))))
+  (value_declaration
+    (decl_left
+      (identifier_pattern
+        (identifier)))
+    (expr_body
+      (bin_op_expr
+        (variable_expr
+          (identifier))
+        (operator)
+        (suffix_op_expr
+          (variable_expr
+            (identifier))
+          (suffix_operator)))))
+  (value_declaration
+    (decl_left
+      (identifier_pattern
+        (identifier)))
+    (expr_body
+      (bin_op_expr
+        (variable_expr
+          (identifier))
+        (operator)
+        (suffix_op_expr
+          (function_call_pnc_expr
+            (variable_expr
+              (identifier)))
+          (suffix_operator)))))
+  (value_declaration
+    (decl_left
+      (identifier_pattern
+        (identifier)))
+    (expr_body
+      (suffix_op_expr
+        (bin_op_expr
+          (suffix_op_expr
+            (bin_op_expr
+              (variable_expr
+                (identifier))
+              (operator)
+              (function_call_pnc_expr
+                (variable_expr
+                  (identifier))))
+            (suffix_operator))
+          (operator)
+          (function_call_pnc_expr
+            (variable_expr
+              (identifier))))
+        (suffix_operator)))))
+
+================================================================================
+mixed postfix chain
+================================================================================
+result = source().required.0(next).?optional?
+negated = !source().required?
+continued = source()?.value.0(next).?optional?
+--------------------------------------------------------------------------------
+
+(file
+  (value_declaration
+    (decl_left
+      (identifier_pattern
+        (identifier)))
+    (expr_body
+      (suffix_op_expr
+        (field_access_expr
+          (function_call_pnc_expr
+            (tuple_access_expr
+              (field_access_expr
+                (function_call_pnc_expr
+                  (variable_expr
+                    (identifier)))
+                (identifier))
+              (int))
+            (variable_expr
+              (identifier)))
+          (optional_access)
+          (identifier))
+        (suffix_operator))))
+  (value_declaration
+    (decl_left
+      (identifier_pattern
+        (identifier)))
+    (expr_body
+      (prefixed_expression
+        (suffix_op_expr
+          (field_access_expr
+            (function_call_pnc_expr
+              (variable_expr
+                (identifier)))
+            (identifier))
+          (suffix_operator)))))
+  (value_declaration
+    (decl_left
+      (identifier_pattern
+        (identifier)))
+    (expr_body
+      (suffix_op_expr
+        (field_access_expr
+          (function_call_pnc_expr
+            (tuple_access_expr
+              (field_access_expr
+                (suffix_op_expr
+                  (function_call_pnc_expr
+                    (variable_expr
+                      (identifier)))
+                  (suffix_operator))
+                (identifier))
+              (int))
+            (variable_expr
+              (identifier)))
+          (optional_access)
+          (identifier))
+        (suffix_operator)))))
+
+================================================================================
+accessor punctuation permits leading trivia
+================================================================================
+required = rec .field
+optional = rec .?field
+tuple = pair .0
+--------------------------------------------------------------------------------
+
+(file
+  (value_declaration
+    (decl_left
+      (identifier_pattern
+        (identifier)))
+    (expr_body
+      (field_access_expr
+        (variable_expr
+          (identifier))
+        (identifier))))
+  (value_declaration
+    (decl_left
+      (identifier_pattern
+        (identifier)))
+    (expr_body
+      (field_access_expr
+        (variable_expr
+          (identifier))
+        (optional_access)
+        (identifier))))
+  (value_declaration
+    (decl_left
+      (identifier_pattern
+        (identifier)))
+    (expr_body
+      (tuple_access_expr
+        (variable_expr
+          (identifier))
+        (int)))))
+
+================================================================================
+accessor punctuation requires an adjacent field or index
+================================================================================
+bad_required = rec. field
+bad_optional = rec.? field
+bad_tuple = pair. 0
+--------------------------------------------------------------------------------
+
+(file
+  (value_declaration
+    (decl_left
+      (identifier_pattern
+        (identifier)))
+    (expr_body
+      (variable_expr
+        (identifier))))
+  (ERROR)
+  (expr_body
+    (variable_expr
+      (identifier)))
+  (value_declaration
+    (decl_left
+      (identifier_pattern
+        (identifier)))
+    (expr_body
+      (variable_expr
+        (identifier))))
+  (ERROR
+    (optional_access))
+  (expr_body
+    (variable_expr
+      (identifier)))
+  (value_declaration
+    (decl_left
+      (identifier_pattern
+        (identifier)))
+    (expr_body
+      (variable_expr
+        (identifier))))
+  (ERROR)
+  (expr_body
+    (const
+      (int))))
+
+================================================================================
+operator chains do not invent a question suffix
+================================================================================
+calculated = outer(inner(input)) + 1 + final(input)
+checks = left == 1 and right == 2
+--------------------------------------------------------------------------------
+
+(file
+  (value_declaration
+    (decl_left
+      (identifier_pattern
+        (identifier)))
+    (expr_body
+      (bin_op_expr
+        (function_call_pnc_expr
+          (variable_expr
+            (identifier))
+          (function_call_pnc_expr
+            (variable_expr
+              (identifier))
+            (variable_expr
+              (identifier))))
+        (operator)
+        (const
+          (int))
+        (operator)
+        (function_call_pnc_expr
+          (variable_expr
+            (identifier))
+          (variable_expr
+            (identifier))))))
+  (value_declaration
+    (decl_left
+      (identifier_pattern
+        (identifier)))
+    (expr_body
+      (bin_op_expr
+        (variable_expr
+          (identifier))
+        (operator)
+        (const
+          (int))
+        (operator)
+        (variable_expr
+          (identifier))
+        (operator)
+        (const
+          (int))))))

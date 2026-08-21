@@ -2,7 +2,7 @@
 // @ts-check
 const PREC = {
   PATTERN: 0,
-  FIELD_ACCESS_START: 1,
+  FIELD_ACCESS_START: 2,
   WHERE_IMPLEMENTS: 1,
   TAG: 1,
   FUNCTION_START: 1,
@@ -14,6 +14,14 @@ const PREC = {
   IMPORT: 20,
   ARGS: 20,
 };
+
+const DECIMAL_INTEGER = /[0-9][0-9_]*/;
+const EXPONENT = /[eE][+-]?[0-9][0-9_]*/;
+const HEX_INTEGER = /0[xX][0-9a-fA-F][0-9a-fA-F_]*/;
+const OCTAL_INTEGER = /0[oO][0-7][0-7_]*/;
+const BINARY_INTEGER = /0[bB][01][01_]*/;
+const NUMERIC_TYPE_NAME = /[\p{Lu}][\p{XID_Continue}]*/;
+const IDENTIFIER = /\$?_*[\p{Ll}][\p{XID_Continue}]*!?/;
 
 module.exports = grammar({
   name: "roc",
@@ -40,6 +48,9 @@ module.exports = grammar({
     ")",
     "}",
     "except",
+    $._else_if_start,
+    $._record_function_param_comma,
+    $._tight_binary_minus,
   ],
 
   extras: ($) => [$.line_comment, $.doc_comment, /[ \s\f\uFEFF\u2060\u200B]|\\\r?n/],
@@ -50,16 +61,29 @@ module.exports = grammar({
     //
     // === conflicts that must exist:
     //Expressions and patterns will always need to be in conflict because we except expressions in the top level so it's impossible to tell if a list is a list experssion or a list destructuring untill you get to the =
-    [$._pattern, $._atom_expr],
-    [$._atomic_pattern, $._atom_expr],
+    [$._atomic_pattern, $._primary_expr],
+    [$._pattern, $._primary_expr],
     [$.body_expression, $.record_expr],
     [$.tag_pattern, $.tag_expr],
+    [$.nominal_record_expr, $.nominal_record_pattern],
     //records are ambiguous with expresion bodies with parens this all makes sense:
     [$.record_field_pattern, $.record_field_expr],
     [$.record_field_pattern, $.record_field_expr, $.annotation_pre_colon],
 
     [$.record_field_expr, $.annotation_pre_colon],
+    [$.record_field_expr, $._atomic_pattern],
+    [$.expr_body, $._tuple_body],
+    [$._expr_inner, $.suffix_op_expr],
+    [$._postfix_expr, $._pipe_operand],
+    [$._atom_expr, $._pipe_operand],
+    [$.bin_op_expr, $.suffix_op_expr],
+    [$._pipe_operand, $.suffix_op_expr],
+    [$.bin_op_expr, $._operator_chain_ending_in_pipe_call],
     [$.record_expr, $.body_expression, $.record_pattern],
+    [$._pattern, $._atomic_pattern],
+    [$._primary_expr, $._pattern, $._atomic_pattern],
+    [$.string, $._string_pattern_char],
+    [$.function_type, $.record_function_type],
 
     // ===== conflicts that maybe don't need to exist ====
     [$._tags_only],
@@ -136,7 +160,13 @@ module.exports = grammar({
       Expressions that can appear anywhere in the body of an expression.
       */
     body_expression: ($) =>
-      seq("{", repeat(choice($.value_declaration, $.var_declaration, $._expr_inner)), "}"),
+      seq(
+        "{",
+        repeat(choice($.value_declaration, $.var_declaration, $.local_type_binding, $._expr_inner)),
+        "}",
+      ),
+
+    local_type_binding: ($) => seq($.concrete_type, ":", $.bound_variable),
 
     expr_body: ($) => $._expr_inner,
     expr_body_terminal: ($) => $._expr_inner,
@@ -144,31 +174,46 @@ module.exports = grammar({
     /**
     atomic expressions can be used as function args without being wrapped in parens
     */
-    _atom_expr: ($) =>
+    _primary_expr: ($) =>
       choice(
         $.anon_fun_expr,
         $.const,
         $.record_expr,
-        $.record_builder_expr,
         $._variable_expr,
         $.parenthesized_expr,
+        alias($._parenthesized_negative_expr, $.parenthesized_expr),
         $.body_expression,
         $.operator_as_function_expr,
         $.tag_expr,
         $.tuple_expr,
         $.list_expr,
-        $.field_access_expr,
         $.todo_expr,
+        $.nominal_constructor_expr,
+        $.nominal_record_expr,
+        $.crash_expr,
+        $.break_expr,
+      ),
+
+    // Calls, field/tuple accesses, and the immediate `?` suffix form one
+    // left-recursive postfix tier. Each rule consumes exactly one postfix step,
+    // so mixed chains have an unambiguous, left-to-right CST.
+    _postfix_expr: ($) =>
+      choice(
+        $._primary_expr,
+        $.field_access_expr,
+        $.tuple_access_expr,
         $.function_call_pnc_expr,
         $.suffix_op_expr,
-        $.prefixed_expression,
       ),
+
+    _atom_expr: ($) => choice($._postfix_expr, $.prefixed_expression),
 
     _expr_inner: ($) =>
       choice(
         $.bin_op_expr,
         $._atom_expr,
         $.for_expr,
+        $.while_expr,
         $.if_expr,
         $.match_expr,
         $.early_return_expr,
@@ -180,16 +225,7 @@ module.exports = grammar({
     prefixed_expression: ($) =>
       prec(
         PREC.PREFIX_EXPR,
-        seq(
-          choice("!", "*", "-", "^"),
-          choice(
-            $.const,
-            $.parenthesized_expr,
-            $.field_access_expr,
-            $._variable_expr,
-            $.function_call_pnc_expr,
-          ),
-        ),
+        seq(choice("!", "*", "-", "^"), choice($._postfix_expr, $.prefixed_expression)),
       ),
     dbg_expr: ($) => seq("dbg", alias($.expr_body_terminal, $.expr_body)),
 
@@ -202,22 +238,82 @@ module.exports = grammar({
         field("iterable", $._expr_inner),
         field("body", $._expr_inner),
       ),
+    while_expr: ($) =>
+      seq("while", field("guard", $._expr_inner), field("body", $.body_expression)),
+    break_expr: () => "break",
+    crash_expr: ($) => seq("crash", field("message", $.expr_body)),
     early_return_expr: ($) => seq("return", field("body", $.expr_body)),
 
     _variable_expr: ($) => alias($.long_identifier, $.variable_expr),
     parenthesized_expr: ($) => seq("(", field("expression", $.expr_body), ")"),
+    _parenthesized_negative_expr: ($) =>
+      prec(
+        PREC.ARGS + 1,
+        seq(
+          "(",
+          field("expression", alias($._parenthesized_negative_value, $.prefixed_expression)),
+          ")",
+        ),
+      ),
+    _parenthesized_negative_value: ($) =>
+      prec(
+        PREC.ARGS + 1,
+        seq(
+          field("operator", alias($._tight_binary_minus, $.operator_identifier)),
+          $._unsigned_number,
+        ),
+      ),
 
-    if_expr: ($) => seq("if", field("guard", $._expr_inner), $.then, repeat($.else_if), $.else),
+    if_expr: ($) =>
+      prec.right(
+        seq(
+          "if",
+          field("guard", $._expr_inner),
+          $.then,
+          optional(choice(seq(repeat1($.else_if), optional($.else)), $.else)),
+        ),
+      ),
     else: ($) => seq("else", $._expr_inner),
     // biome-ignore lint/suspicious/noThenProperty: <explanation>
     then: ($) => seq(field("then", $._expr_inner)),
-    else_if: ($) => prec.left(seq("else", "if", field("guard", $._expr_inner), $.then)),
+    else_if: ($) =>
+      prec.left(seq(alias($._else_if_start, "else if"), field("guard", $._expr_inner), $.then)),
 
     field_access_expr: ($) =>
-      prec.right(
+      prec.left(
         PREC.FIELD_ACCESS_START,
-        seq(field("target", $._atom_expr), repeat1(seq(".", $.identifier))),
+        seq(
+          field("target", $._postfix_expr),
+          choice(
+            seq(".", alias(imm(IDENTIFIER), $.identifier)),
+            seq(alias(".?", $.optional_access), alias(imm(IDENTIFIER), $.identifier)),
+          ),
+        ),
       ),
+
+    tuple_access_expr: ($) =>
+      prec.left(
+        PREC.FIELD_ACCESS_START,
+        seq(
+          field("target", $._postfix_expr),
+          ".",
+          field("index", alias(imm(DECIMAL_INTEGER), $.int)),
+        ),
+      ),
+
+    nominal_constructor_expr: ($) =>
+      seq(
+        $.tag,
+        imm(".("),
+        choice(
+          seq(field("value", $.expr_body), optional(",")),
+          field("value", alias($._tuple_body, $.tuple_expr)),
+        ),
+        ")",
+      ),
+
+    nominal_record_expr: ($) =>
+      seq($.tag, imm(".{"), sep_tail(choice($.record_field_expr, $.spread_expr), ","), "}"),
 
     // chain_expr: ($) =>
     //   prec(
@@ -229,27 +325,98 @@ module.exports = grammar({
     //   ),
 
     function_call_pnc_expr: ($) =>
-      prec.right(
+      prec.left(
         PREC.FUNC,
         seq(
-          field("caller", $._atom_expr),
+          field("caller", $._postfix_expr),
           seq(imm("("), field("args", sep_tail($._expr_inner, ",")), ")"),
         ),
       ),
 
     operator_as_function_expr: ($) => $._operator_as_function_inner,
 
-    _operator_as_function_inner: ($) => seq("(", field("operator", $.operator_identifier), ")"),
+    _operator_as_function_inner: ($) =>
+      seq("(", field("operator", $.operator_identifier), imm(")")),
 
     //OPERTATOR CALLING
     bin_op_expr: ($) =>
       field(
         "part",
-        prec(PREC.PART, seq($._atom_expr, prec.right(repeat1(seq($.operator, $._atom_expr))))),
+        prec(
+          PREC.PART,
+          seq(
+            $._atom_expr,
+            prec.right(
+              repeat1(
+                choice(
+                  // Keep ordinary operands atomic so the enclosing repeat owns
+                  // subsequent operators. Match and if remain explicit RHS
+                  // forms without reopening the full expression hierarchy.
+                  seq($._non_pipe_operator, choice($._atom_expr, $.match_expr, $.if_expr)),
+                  seq(alias("|>", $.operator), $._pipe_operand),
+                ),
+              ),
+            ),
+          ),
+        ),
       ),
     suffix_op_expr: ($) =>
-      field("part", prec.left(PREC.PART + 1, seq($._atom_expr, $.suffix_operator))),
+      choice(
+        field("part", prec.left(PREC.PART + 1, seq($._postfix_expr, $.suffix_operator))),
+        prec.dynamic(
+          -1,
+          field("part", prec.left(0, seq(choice($.match_expr, $.if_expr), $.suffix_operator))),
+        ),
+        // The completed pipe is the target when its direct-call RHS is followed
+        // by `?`: `a |> f()?` means `(a |> f())?`. Naming the exact ending
+        // avoids making every binary expression compete as a suffix target.
+        field(
+          "part",
+          prec.left(
+            PREC.PART + 1,
+            seq(alias($._operator_chain_ending_in_pipe_call, $.bin_op_expr), $.suffix_operator),
+          ),
+        ),
+      ),
 
+    _operator_chain_ending_in_pipe_call: ($) =>
+      field(
+        "part",
+        prec(
+          PREC.PART,
+          seq(
+            $._atom_expr,
+            repeat(seq(alias("|>", $.operator), $._pipe_operand)),
+            alias("|>", $.operator),
+            $.function_call_pnc_expr,
+          ),
+        ),
+      ),
+    // A pipe RHS intentionally excludes only the shape `direct_call?`; that
+    // suffix belongs to the completed pipe. Other immediate suffixes, including
+    // `f?` and `f().field?`, stay inside the RHS postfix chain.
+    _pipe_operand: ($) =>
+      choice(
+        $._primary_expr,
+        $.field_access_expr,
+        $.tuple_access_expr,
+        $.function_call_pnc_expr,
+        alias($._pipe_non_call_suffix_expr, $.suffix_op_expr),
+        $.prefixed_expression,
+        $.match_expr,
+        $.if_expr,
+      ),
+    _pipe_non_call_suffix_expr: ($) =>
+      field(
+        "part",
+        prec.left(
+          PREC.PART + 1,
+          seq(
+            choice($._primary_expr, $.field_access_expr, $.tuple_access_expr, $.suffix_op_expr),
+            $.suffix_operator,
+          ),
+        ),
+      ),
     //PATTERN MATCHING
     _match_start: ($) => seq(alias("match", $.match), $._expr_inner),
 
@@ -272,12 +439,24 @@ module.exports = grammar({
 
     //RECORDS
 
-    record_field_expr: ($) => prec.right(seq($.field_name, optional(seq(":", $.expr_body)))),
+    record_field_expr: ($) =>
+      prec.right(
+        seq(
+          $.field_name,
+          optional(seq(":", choice($.expr_body, alias("_", $.unset_record_field)))),
+        ),
+      ),
 
-    record_expr: ($) => seq("{", sep_tail(choice($.record_field_expr, $.spread_expr), ","), "}"),
+    record_expr: ($) =>
+      seq(
+        "{",
+        sep_tail(choice($.record_field_expr, $.spread_expr), ","),
+        "}",
+        optional(field("builder", $.record_builder_suffix)),
+      ),
 
-    record_builder_expr: ($) =>
-      seq("{", $.identifier, "<-", sep1_tail($.record_field_expr, ","), "}"),
+    record_builder_suffix: ($) =>
+      imm(/\.[\p{Lu}][\p{XID_Continue}]*(\.[\p{Lu}][\p{XID_Continue}]*)*/),
 
     //LISTS
 
@@ -299,59 +478,77 @@ module.exports = grammar({
       choice(
         alias("_", $.wildcard_pattern),
         alias($.const, $.const_pattern),
+        alias($.string_pattern, $.const_pattern),
         $.identifier_pattern,
         $.disjunct_pattern,
         $.conjunct_pattern,
         $.cons_pattern,
         $.paren_pattern,
         $.list_pattern,
-        $.tag_pattern,
+        prec(3, $.tag_pattern),
+        $.nominal_constructor_pattern,
+        $.nominal_record_pattern,
         $.record_pattern,
         $.tuple_pattern,
         $.spread_pattern,
+        $.as_pattern,
       ),
 
+    as_pattern: ($) => prec.left(seq(field("pattern", $._atomic_pattern), "as", $.identifier)),
+
     identifier_pattern: ($) => prec(PREC.FIELD_ACCESS_START + 1, $.identifier),
+    nominal_constructor_pattern: ($) =>
+      seq(
+        $.tag,
+        imm(".("),
+        choice(
+          seq(field("value", $._pattern), optional(",")),
+          field("value", alias($._tuple_pattern_body, $.tuple_pattern)),
+        ),
+        ")",
+      ),
+    nominal_record_pattern: ($) =>
+      seq($.tag, imm(".{"), sep_tail(choice($.record_field_pattern, $.spread_pattern), ","), "}"),
     cons_pattern: ($) => prec.left(0, seq($._pattern, "::", $._pattern)),
     disjunct_pattern: ($) => prec.left(0, seq($._pattern, "|", $._pattern)),
     conjunct_pattern: ($) => prec.left(0, seq($._pattern, "&", $._pattern)),
 
     paren_pattern: ($) => seq("(", $._pattern, ")"),
-    spread_pattern: ($) => prec.left(seq("..", optional(seq("as", $.identifier)))),
+    spread_pattern: ($) =>
+      prec.left(seq("..", optional(choice(seq("as", $.identifier), $.identifier)))),
 
     tag_pattern: ($) =>
       prec.left(
         seq($.tag, optional(seq("(", field("args", sep_tail($._atomic_pattern, ",")), ")"))),
       ),
-    tuple_pattern: ($) =>
-      prec.right(
-        seq(
-          "(",
-          $._atomic_pattern,
-          ",",
-          repeat(prec.right(seq($._atomic_pattern, ","))),
-          $._atomic_pattern,
-          ")",
-        ),
-      ),
+    tuple_pattern: ($) => seq("(", $._tuple_pattern_body, ")"),
 
-    argument_patterns: ($) => seq($._atomic_pattern, repeat(seq(",", $._atomic_pattern))),
+    _tuple_pattern_body: ($) =>
+      seq($._atomic_pattern, ",", optional(sep1_tail($._atomic_pattern, ","))),
+
+    argument_patterns: ($) =>
+      seq($._atomic_pattern, repeat(seq(",", $._atomic_pattern)), optional(",")),
     _atomic_pattern: ($) =>
       choice(
         "null",
         alias("_", $.wildcard_pattern),
         $.const,
+        alias($.string_pattern, $.const_pattern),
         $.identifier_pattern,
         $.list_pattern,
         $.tuple_pattern,
         $.record_pattern,
-        $.tag_pattern,
+        prec(2, $.tag_pattern),
+        $.nominal_constructor_pattern,
+        $.nominal_record_pattern,
+        $.mutable_pattern,
         //TODO: this shhouldn't realy be here
         $.spread_pattern,
-        seq("(", $._pattern, ")"),
+        $.paren_pattern,
 
         // :? atomic_type
       ),
+    mutable_pattern: ($) => seq("var", $.identifier_pattern),
     _assignment_pattern: ($) =>
       choice(
         alias("_", $.wildcard_pattern),
@@ -359,6 +556,9 @@ module.exports = grammar({
         $.list_pattern,
         $.tuple_pattern,
         $.record_pattern,
+        prec(3, $.tag_pattern),
+        $.nominal_constructor_pattern,
+        $.nominal_record_pattern,
       ),
 
     list_pattern: ($) =>
@@ -390,7 +590,14 @@ module.exports = grammar({
     //TODO make this a function for app and platform
     platform_header: ($) => seq("platform", alias($.string, $.name), $.platform_header_body),
     platform_header_body: ($) =>
-      sep1(choice($.requires, $.exposes, $.packages, $.provides, $.effects), "\n"),
+      seq(
+        $.requires,
+        $.platform_exposes,
+        $.packages,
+        $.provides,
+        optional($.hosted),
+        optional($.targets),
+      ),
 
     module_header: ($) => seq("module", $.exposes_list),
 
@@ -404,12 +611,29 @@ module.exports = grammar({
 
     exposed_list: ($) => seq("{", sep_tail($.ident, ","), "}"),
     exposes: ($) => seq("exposes", $.exposes_list),
+    platform_exposes: ($) => seq("exposes", "[", sep_tail($.platform_exposed_item, ","), "]"),
+    platform_exposed_item: ($) =>
+      seq(
+        choice($.identifier, $.module),
+        repeat(seq(imm("."), choice($.identifier, $.module, "*"))),
+      ),
     exposes_list: ($) => seq("exposing", seq("[", sep_tail($.ident, ","), "]")),
     import_ident: ($) => seq(optional(seq($.identifier, ".")), sep1($.module, ".")),
+    import_path: ($) =>
+      choice(
+        seq(
+          field("root", choice("/", "./", token(/(\.\.\/)+/))),
+          repeat(seq(choice($.identifier, $.module), imm("/"))),
+          $.module,
+          repeat(seq(imm("."), $.module)),
+        ),
+        seq($.module, repeat1(seq(imm("/"), $.module)), repeat(seq(imm("."), $.module))),
+      ),
     _import_body: ($) =>
       seq(
-        $.import_ident,
-        optional(choice(alias($.exposes_list, $.exposing), seq(alias("as", $.as), $.module))),
+        choice($.import_ident, $.import_path),
+        optional(seq(alias("as", $.as), $.module)),
+        optional(alias($.exposes_list, $.exposing)),
       ),
     import_expr: ($) => prec(PREC.IMPORT, seq("import", $._import_body)),
     import_file_expr: ($) =>
@@ -422,27 +646,65 @@ module.exports = grammar({
     provides: ($) =>
       seq(
         "provides",
-        "[",
-        optional($.identifier),
-        repeat(seq(",", $.identifier)),
-        optional(","),
-        "]",
-        optional(seq($.to, choice($.string, $.ident))),
-      ),
-    provides_list: ($) =>
-      seq("[", optional($.identifier), repeat(seq(",", $.identifier)), optional(","), "]"),
-    requires: ($) => seq("requires", $.requires_rigids, "{", $.typed_ident, "}"),
-
-    requires_rigids: ($) =>
-      choice(
-        seq(
-          "{",
-          optional(seq($.requires_rigid, repeat(seq(",", $.requires_rigid)), optional(","))),
-          "}",
+        choice(
+          seq(
+            "[",
+            optional($.identifier),
+            repeat(seq(",", $.identifier)),
+            optional(","),
+            "]",
+            optional(seq($.to, choice($.string, $.ident))),
+          ),
+          $.platform_symbol_map,
         ),
       ),
 
-    requires_rigid: ($) => seq($.identifier, optional(seq("=>", $._upper_identifier))),
+    hosted: ($) => seq("hosted", $.platform_symbol_map),
+
+    platform_symbol_map: ($) =>
+      seq(
+        "{",
+        sep_tail(
+          seq(
+            field("symbol", choice($.string, $.identifier)),
+            ":",
+            field("implementation", $._variable_expr),
+          ),
+          ",",
+        ),
+        "}",
+      ),
+
+    targets: ($) => seq("targets", ":", $.record_expr),
+    provides_list: ($) =>
+      seq(
+        "[",
+        optional(choice($.identifier, $.module)),
+        repeat(seq(",", choice($.identifier, $.module))),
+        optional(","),
+        "]",
+      ),
+    requires: ($) =>
+      choice(
+        seq("requires", "{", optional($.requires_entries), "}"),
+        seq("requires", "{", "}", "{", sep_tail($.typed_ident, ","), "}"),
+      ),
+
+    requires_entries: ($) =>
+      seq($.requires_entry, repeat(prec.left(3, seq(",", $.requires_entry))), optional(",")),
+
+    requires_entry: ($) => prec(2, choice($.typed_ident, $.requires_for_clause)),
+
+    requires_for_clause: ($) =>
+      seq(
+        "[",
+        sep_tail(seq($.module, ":", $.bound_variable), ","),
+        "]",
+        "for",
+        $.identifier,
+        ":",
+        $._type_annotation,
+      ),
 
     //####-------###
     //#### TYPES ###
@@ -492,7 +754,11 @@ module.exports = grammar({
       ),
 
     function_type: ($) =>
-      seq(sep1(field("param", $._atomic_type), ","), choice($.arrow, $.fat_arrow), $._atomic_type),
+      seq(
+        choice(seq("(", ")"), sep1(field("param", $._atomic_type), ",")),
+        choice($.arrow, $.fat_arrow),
+        $._atomic_type,
+      ),
 
     parenthesized_type: ($) => seq("(", $._type_annotation, ")"),
     tuple_type: ($) => seq("(", $._type_annotation, ",", sep1_tail($._type_annotation, ","), ")"),
@@ -521,9 +787,9 @@ module.exports = grammar({
     tag_type: ($) => seq(field("name", $._upper_identifier), optional($._apply_type_args)),
     type_variable: ($) => choice($.bound_variable),
 
-    bound_variable: ($) => alias($._lower_identifier, $.bound_variable),
+    bound_variable: ($) => alias(token(/_*[\p{Ll}][\p{XID_Continue}]*/), $.bound_variable),
 
-    inferred: ($) => alias("_", $.inferred),
+    inferred: ($) => alias(token("_"), $.inferred),
 
     apply_type: ($) => prec.right(seq($.concrete_type, optional($._apply_type_args))),
 
@@ -541,13 +807,39 @@ module.exports = grammar({
         prec.right(seq(imm("("), prec.right(PREC.ARGS, sep1_tail($.apply_type_arg, ",")), ")")),
       ),
 
-    apply_type_arg: ($) => prec.left($._atomic_type),
+    apply_type_arg: ($) => prec.left(choice($._atomic_type, $.function_type)),
 
     typed_ident: ($) => seq($.identifier, ":", $._type_annotation),
 
     record_type: ($) => seq("{", sep_tail(choice($.record_field_type, $.spread_type), ","), "}"),
 
-    record_field_type: ($) => seq($.field_name, ":", $._type_annotation),
+    record_field_type: ($) =>
+      choice(
+        seq($._record_type_field_name, alias("?:", $.optional_field), $._type_annotation),
+        seq(
+          $._record_type_field_name,
+          ":",
+          alias($.record_function_type, $.function_type),
+          optional(seq(alias("??", $.default_value), $.expr_body)),
+        ),
+        seq(
+          $._record_type_field_name,
+          ":",
+          $._type_annotation,
+          optional(seq(alias("??", $.default_value), $.expr_body)),
+        ),
+      ),
+    // A distinct nonterminal lets GLR retain a comma as a function parameter
+    // separator instead of prematurely ending the surrounding record field.
+    // Unlike the old workaround, punctuation, trivia, and arrows remain
+    // separate tokens with accurate source ranges.
+    record_function_type: ($) =>
+      seq(
+        choice(seq("(", ")"), sep1(field("param", $._atomic_type), $._record_function_param_comma)),
+        choice($.arrow, $.fat_arrow),
+        $._atomic_type,
+      ),
+    _record_type_field_name: ($) => choice($.field_name, alias("_", $.field_name)),
     /** can be used to make tag unions or records open*/
 
     annotation_pre_colon: ($) =>
@@ -558,43 +850,52 @@ module.exports = grammar({
         $.identifier,
       ),
 
-    effects: ($) =>
-      seq(
-        // '__',
-        "effects",
-        $.effect_name,
-        $.record_type,
-      ),
-
-    effect_name: ($) => seq($.identifier, ".", $._upper_identifier),
     //##------------##
     //##-- consts --##
     //##------------##
 
     const: ($) =>
       choice(
-        // Dot-suffix patterns must come before generic patterns
-        $.uint_dot,
-        $.iint_dot,
-        $.decimal_dot,
-        $.xint_dot,
-        $.float,
-        $.xint,
-        $.decimal,
-        $.natural,
-        $.uint,
-        $.iint,
-
+        $.negative_number,
+        $._unsigned_number,
         $.char,
+        $.typed_string,
         $.string,
         $.multiline_string,
-        $.int,
         "false",
         "true",
         // $.unit,
       ),
 
+    _unsigned_number: ($) =>
+      choice(
+        // Dot-suffix literals must come before their unsuffixed prefixes.
+        $.number_with_suffix,
+        $.float,
+        $.xint,
+        $.int,
+      ),
+
+    // Roc lexes signed numerals as one token. A narrow external binary-minus
+    // token handles the overlapping no-space subtraction form `value-1`.
+    negative_number: ($) =>
+      choice(
+        alias(token(seq("-", numberWithSuffixLiteral())), $.number_with_suffix),
+        alias(token(seq("-", floatLiteral())), $.float),
+        alias(token(seq("-", HEX_INTEGER)), $.xint),
+        alias(token(seq("-", OCTAL_INTEGER)), $.xint),
+        alias(token(seq("-", BINARY_INTEGER)), $.xint),
+        alias(token(seq("-", DECIMAL_INTEGER)), $.int),
+      ),
+
     //STRINGS
+    typed_string: ($) =>
+      choice(
+        seq($.string, $.literal_type_suffix),
+        seq($.multiline_string, alias($.multiline_literal_type_suffix, $.literal_type_suffix)),
+      ),
+    literal_type_suffix: ($) => imm(/\.[\p{Lu}][\p{XID_Continue}]*/),
+    multiline_literal_type_suffix: ($) => /\.[\p{Lu}][\p{XID_Continue}]*/,
     string: ($) =>
       seq('"', repeat(choice(imm(prec(0, /[^\n\\"]/)), $.interpolation_char, $.escape_char)), '"'),
 
@@ -609,47 +910,40 @@ module.exports = grammar({
         ),
       ),
 
-    escape_char: ($) => imm(/\\([\\"\'ntbrafv]|(\$\{))|(\\u\([0-9A-F]{1,8}\))/),
+    escape_char: ($) => imm(/\\([\\"\'ntbrafv]|(\$\{))|(\\u\([0-9A-Fa-f]{1,8}\))/),
     interpolation_char: ($) =>
       seq(
         imm("${"), //This is the new interpolation syntax
         $._expr_inner,
         "}",
       ),
+    string_pattern: ($) =>
+      seq(
+        '"',
+        repeat($._string_pattern_char),
+        $.string_pattern_capture,
+        repeat(choice($._string_pattern_char, $.string_pattern_capture)),
+        '"',
+      ),
+    _string_pattern_char: ($) => choice(imm(prec(0, /[^\n\\"$]/)), imm("$"), $.escape_char),
+    string_pattern_capture: ($) => seq(imm("${"), $._pattern, "}"),
     _simple_string_char: ($) => /[^\t\r\u0008\a\f\v\\"]/,
     _simple_char_char: ($) => imm(/[^\n\t\r\u0008\a\f\v'\\]/),
     char: ($) => seq("'", choice($.escape_char, $._simple_char_char), imm("'")),
 
     //NUMBERS
-    int: ($) => token(/[0-9][0-9_]*/),
+    int: ($) => token(DECIMAL_INTEGER),
+    // Modern numeric suffixes use an immediate `.UpperType`, including custom
+    // numeric types. The compiler tokenizes the numeric core and suffix together.
+    number_with_suffix: ($) => token(numberWithSuffixLiteral()),
 
-    //ROC - Dot-suffix format (new syntax)
-    uint_dot: ($) => token(seq(/[0-9][0-9_]*/, imm(/\./), imm(/U(8|16|32|64|128)/))),
-    iint_dot: ($) => token(seq(/[0-9][0-9_]*/, imm(/\./), imm(/I(8|16|32|64|128)/))),
-    decimal_dot: ($) => token(seq(/[0-9][0-9_]*/, imm(/\./), imm(/Dec/))),
-    xint_dot: ($) =>
-      token(
-        seq(
-          choice(seq(/0[x]/, /[0-9abcdefABCDEF][0-9abcdefABCDEF_]*/), seq(/0[b]/, /[01][01_]*/)),
-          imm(/\./),
-          imm(/[UI](8|16|32|64|128)/),
-        ),
-      ),
-
-    //ROC - Immediate suffix format (old syntax, still supported)
-    uint: ($) => token(seq(/[0-9][0-9_]*/, imm(/u(32|8|16|64|128)/))),
-    iint: ($) => token(seq(/[0-9][0-9_]*/, imm(/i(32|8|16|64|128)/))),
-    decimal: ($) => token(/[0-9]+(\.)?[0-9]*(dec)/),
-    natural: ($) => token(/[0-9]+(nat)/),
-
-    float: ($) => token(/[0-9]+(\.)?[0-9]*(e-?[0-9]*)?((f32)|(f64))?/),
-    _hex_int: ($) => token(/0[x][0-9abcdefABCDEF]*/),
-    _ocal_int: ($) => token(/0[o][0-7]*/),
-    _binary_int: ($) => token(seq(/0[b]/, /[01][01_]*/)),
+    float: ($) => token(floatLiteral()),
+    _hex_int: ($) => token(HEX_INTEGER),
+    _ocal_int: ($) => token(OCTAL_INTEGER),
+    _binary_int: ($) => token(BINARY_INTEGER),
     xint: ($) => choice($._binary_int, $._hex_int, $._ocal_int),
 
     //PRIMATIVES
-    back_arrow: ($) => "<-",
     arrow: ($) => "->",
     fat_arrow: ($) => "=>",
     field_name: ($) => alias($.identifier, $.field_name),
@@ -661,7 +955,11 @@ module.exports = grammar({
     ident: ($) => choice($.identifier, $.module),
 
     identifier: ($) =>
-      prec(100, seq(optional("$"), optional("_"), $._lower_identifier, optional(imm("!")))),
+      choice(
+        token(prec(101, /\$?_*[\p{Ll}][\p{XID_Continue}]*!/)),
+        token(prec(101, /\$?_+[\p{Ll}][\p{XID_Continue}]*/)),
+        prec(100, seq(optional("$"), $._lower_identifier)),
+      ),
 
     _lower_identifier: ($) => /[\p{Ll}][\p{XID_Continue}]*/,
 
@@ -677,7 +975,9 @@ module.exports = grammar({
     suffix_operator_identifier: ($) => imm("?"),
 
     operator: ($) => alias($.operator_identifier, $.operator),
-    operator_identifier: ($) =>
+    _non_pipe_operator: ($) => alias($._non_pipe_operator_identifier, $.operator),
+    operator_identifier: ($) => choice("|>", $._non_pipe_operator_identifier),
+    _non_pipe_operator_identifier: ($) =>
       choice(
         "and",
         "or",
@@ -694,12 +994,43 @@ module.exports = grammar({
         ">",
         "^",
         "%",
+        "..<",
+        "..=",
         "->",
         "==",
         "!=",
+        alias($._tight_binary_minus, "-"),
+        token(prec(1, "??")),
+        "?",
       ),
   },
 });
+
+function decimalFractionLiteral() {
+  return seq(DECIMAL_INTEGER, ".", DECIMAL_INTEGER, optional(EXPONENT));
+}
+
+function floatLiteral() {
+  return choice(
+    seq(decimalFractionLiteral(), optional(choice("f32", "f64"))),
+    seq(DECIMAL_INTEGER, EXPONENT, optional(choice("f32", "f64"))),
+  );
+}
+
+function numberWithSuffixLiteral() {
+  return seq(
+    choice(
+      HEX_INTEGER,
+      OCTAL_INTEGER,
+      BINARY_INTEGER,
+      decimalFractionLiteral(),
+      seq(DECIMAL_INTEGER, EXPONENT),
+      DECIMAL_INTEGER,
+    ),
+    imm(/\./),
+    imm(NUMERIC_TYPE_NAME),
+  );
+}
 
 function sep1(rule, separator) {
   return seq(rule, repeat(seq(separator, rule)));

@@ -47,3 +47,29 @@ c d
 this syntax is invalid because there is no "void" type
 
 I need to fundimentally rework things to support inline if statements
+
+## Modern syntax follow-ups
+
+- [x] Disambiguate negative numeric patterns from prefixed numeric expressions.
+      `basic-webserver/platform/Sqlite.roc` uses match branches such as
+      `-1 => ...`; a contextual pattern rule currently steals negative values in
+      record expressions because expressions and patterns intentionally conflict.
+- [ ] Disambiguate plain tag destructuring assignments from tag calls.
+      `basic-webserver/platform/Server.roc` uses
+      `FileRoot(root) = route.files`; nominal `Prepared.(value) = source` is
+      supported, but the plain tag form still reduces as an expression before `=`.
+- [x] Move spaced `?` and `??` into the binary operator chain and unify signed
+      numeric parsing. This reduced the generated parser from about 12.7 MB / 7,467
+      states to about 6.5 MB / 3,799 states without reducing real-source coverage.
+- [x] Consolidate calls, field access, tuple access, and suffix operations into
+      a deterministic postfix tier. Prefix operators now wrap complete postfix
+      chains, and pipe suffixes retain their intended grouping.
+- [ ] Reduce generated-parser size after the modern syntax expansion. The
+      current parser has 5,678 states and is about 9.9 MB, compared with 2,084
+      states and 2.5 MB on `master`.
+- [ ] Support uppercase alias, opaque, and nominal type definitions inside
+      block bodies without causing constructor expressions such as `Ok({})` to be
+      recovered as incomplete type declarations.
+- [ ] Reject same-line top-level fragments such as `x = 10 -3` consistently;
+      the Roc compiler rejects this spacing, but module-element recovery can accept
+      the trailing negative expression as a separate item.

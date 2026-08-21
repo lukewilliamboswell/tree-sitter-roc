@@ -1,0 +1,225 @@
+==================
+multi-field record types do not become function parameters
+==================
+
+Position : { x : I64, y : I64 }
+
+GameState : {
+    snake_lst : NonEmptyList,
+    food_pos : Position,
+    direction : [Up, Down, Left, Right],
+    game_over : Bool,
+}
+
+---
+
+(file
+  (alias_type_def
+    (apply_type
+      (concrete_type))
+    (record_type
+      (record_field_type
+        (field_name)
+        (apply_type
+          (concrete_type)))
+      (record_field_type
+        (field_name)
+        (apply_type
+          (concrete_type)))))
+  (alias_type_def
+    (apply_type
+      (concrete_type))
+    (record_type
+      (record_field_type
+        (field_name)
+        (apply_type
+          (concrete_type)))
+      (record_field_type
+        (field_name)
+        (apply_type
+          (concrete_type)))
+      (record_field_type
+        (field_name)
+        (tags_type
+          (tag_type)
+          (tag_type)
+          (tag_type)
+          (tag_type)))
+      (record_field_type
+        (field_name)
+        (apply_type
+          (concrete_type))))))
+
+==================
+anonymous record type fields
+==================
+
+Padded := {
+    z : U32,
+    _ : U32,
+    a : U32,
+}
+
+---
+
+(file
+  (nominal_type_def
+    (apply_type
+      (concrete_type))
+    (colon_equals)
+    (record_type
+      (record_field_type
+        (field_name)
+        (apply_type
+          (concrete_type)))
+      (record_field_type
+        (field_name)
+        (apply_type
+          (concrete_type)))
+      (record_field_type
+        (field_name)
+        (apply_type
+          (concrete_type))))))
+
+==================
+parenthesized negative literal
+==================
+
+q15_input = runtime_zero.to_i16() + (-32768)
+
+---
+
+(file
+  (value_declaration
+    (decl_left
+      (identifier_pattern
+        (identifier)))
+    (expr_body
+      (bin_op_expr
+        (function_call_pnc_expr
+          (field_access_expr
+            (variable_expr
+              (identifier))
+            (identifier)))
+        (operator)
+        (parenthesized_expr
+          (prefixed_expression
+            (operator_identifier)
+            (int)))))))
+
+==================
+adjacent string pattern captures
+==================
+
+result = match "abc" {
+    "${_}${_}" => 1
+    _ => 0
+}
+
+---
+
+(file
+  (value_declaration
+    (decl_left
+      (identifier_pattern
+        (identifier)))
+    (expr_body
+      (match_expr
+        (match)
+        (const
+          (string))
+        (match_branch
+          (const_pattern
+            (string_pattern_capture
+              (wildcard_pattern))
+            (string_pattern_capture
+              (wildcard_pattern)))
+          (fat_arrow)
+          (expr_body
+            (const
+              (int))))
+        (match_branch
+          (wildcard_pattern)
+          (fat_arrow)
+          (expr_body
+            (const
+              (int))))))))
+
+==================
+typed multiline string
+==================
+
+message = \\first
+    \\second
+    .Utf8
+
+---
+
+(file
+  (value_declaration
+    (decl_left
+      (identifier_pattern
+        (identifier)))
+    (expr_body
+      (const
+        (typed_string
+          (multiline_string)
+          (literal_type_suffix))))))
+
+==================
+nominal record and tuple patterns
+==================
+
+result = match value {
+    Range.{ len, .. } => len
+    Foo.(x, y) => x
+    Foo.(x,) => x
+}
+
+---
+
+(file
+  (value_declaration
+    (decl_left
+      (identifier_pattern
+        (identifier)))
+    (expr_body
+      (match_expr
+        (match)
+        (variable_expr
+          (identifier))
+        (match_branch
+          (nominal_record_pattern
+            (tag
+              (identifier))
+            (record_field_pattern
+              (field_name))
+            (spread_pattern))
+          (fat_arrow)
+          (expr_body
+            (variable_expr
+              (identifier))))
+        (match_branch
+          (nominal_constructor_pattern
+            (tag
+              (identifier))
+            (tuple_pattern
+              (identifier_pattern
+                (identifier))
+              (identifier_pattern
+                (identifier))))
+          (fat_arrow)
+          (expr_body
+            (variable_expr
+              (identifier))))
+        (match_branch
+          (nominal_constructor_pattern
+            (tag
+              (identifier))
+            (tuple_pattern
+              (identifier_pattern
+                (identifier))))
+          (fat_arrow)
+          (expr_body
+            (variable_expr
+              (identifier))))))))

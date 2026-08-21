@@ -45,13 +45,13 @@ enum TokenType {
   INDENT,
   DEDENT,
   COMMENT,
-  CLOSE_PAREN,
   CLOSE_BRACKET,
+  CLOSE_PAREN,
   CLOSE_BRACE,
-  IDENTIFIER,
-  SHADOWED_IDENTIFIER,
-  EFFECTFUL_IDENTIFIER,
   EXCEPT,
+  ELSE_IF_START,
+  RECORD_FUNCTION_PARAM_COMMA,
+  TIGHT_BINARY_MINUS,
 };
 
 typedef enum {
@@ -172,9 +172,100 @@ bool tree_sitter_roc_external_scanner_scan(void *payload, TSLexer *lexer,
   bool error_recovery_mode =
        valid_symbols[INDENT];
 
-  bool advanced_once = false;
-
   lexer->mark_end(lexer);
+
+  if (valid_symbols[ELSE_IF_START] && lexer->lookahead == 'e') {
+    advance(lexer);
+    if (lexer->lookahead != 'l') return false;
+    advance(lexer);
+    if (lexer->lookahead != 's') return false;
+    advance(lexer);
+    if (lexer->lookahead != 'e') return false;
+    advance(lexer);
+    if ((lexer->lookahead >= 'a' && lexer->lookahead <= 'z') ||
+        (lexer->lookahead >= 'A' && lexer->lookahead <= 'Z') ||
+        (lexer->lookahead >= '0' && lexer->lookahead <= '9') ||
+        lexer->lookahead == '_') return false;
+    bool separated = false;
+    while (lexer->lookahead == ' ' || lexer->lookahead == '\t' ||
+           lexer->lookahead == '\r' || lexer->lookahead == '\n') {
+      separated = true;
+      skip(lexer);
+    }
+    if (separated && lexer->lookahead == 'i') {
+      advance(lexer);
+      if (lexer->lookahead != 'f') return false;
+      advance(lexer);
+      if ((lexer->lookahead >= 'a' && lexer->lookahead <= 'z') ||
+          (lexer->lookahead >= 'A' && lexer->lookahead <= 'Z') ||
+          (lexer->lookahead >= '0' && lexer->lookahead <= '9') ||
+          lexer->lookahead == '_') return false;
+      lexer->mark_end(lexer);
+      lexer->result_symbol = ELSE_IF_START;
+      return true;
+    }
+    return false;
+  }
+
+  // Record fields and multi-parameter function types both use commas. This
+  // zero-lookahead discriminator keeps the function parse alive without the
+  // former grammar tokens that swallowed the following type, trivia, and
+  // sometimes even the arrow. Its source range is exactly the comma.
+  if (valid_symbols[RECORD_FUNCTION_PARAM_COMMA] &&
+      lexer->lookahead == ',') {
+    advance(lexer);
+    lexer->mark_end(lexer);
+    unsigned depth = 0;
+    while (!lexer->eof(lexer)) {
+      if (lexer->lookahead == '(' || lexer->lookahead == '[' ||
+          lexer->lookahead == '{') {
+        depth++;
+      } else if (lexer->lookahead == ')' || lexer->lookahead == ']' ||
+                 lexer->lookahead == '}') {
+        if (depth == 0) return false;
+        depth--;
+      } else if (depth == 0 && lexer->lookahead == ':') {
+        return false;
+      } else if (depth == 0 &&
+                 (lexer->lookahead == '-' || lexer->lookahead == '=')) {
+        skip(lexer);
+        if (lexer->lookahead == '>') {
+          lexer->result_symbol = RECORD_FUNCTION_PARAM_COMMA;
+          return true;
+        }
+        continue;
+      } else if (lexer->lookahead == '#') {
+        while (lexer->lookahead && lexer->lookahead != '\n') skip(lexer);
+        continue;
+      }
+      skip(lexer);
+    }
+    return false;
+  }
+
+  // Roc treats `value-1` as subtraction, even though `-1` is otherwise one
+  // numeric token. Return a distinct binary-minus token only when the minus is
+  // directly at the current position and is immediately followed by a digit.
+  if (!error_recovery_mode && valid_symbols[TIGHT_BINARY_MINUS] &&
+      lexer->lookahead == '-') {
+    advance(lexer);
+    if (lexer->lookahead >= '0' && lexer->lookahead <= '9') {
+      lexer->mark_end(lexer);
+      lexer->result_symbol = TIGHT_BINARY_MINUS;
+      return true;
+    }
+    return false;
+  }
+
+  // Avoid running the indentation scanner when this narrow token is the only
+  // external symbol that is valid in the current parse state.
+  if ((valid_symbols[TIGHT_BINARY_MINUS] || valid_symbols[ELSE_IF_START] ||
+       valid_symbols[RECORD_FUNCTION_PARAM_COMMA]) &&
+      !valid_symbols[NEWLINE] &&
+      !valid_symbols[END_NEWLINE] && !valid_symbols[INDENT] &&
+      !valid_symbols[DEDENT] && !valid_symbols[EXCEPT]) {
+    return false;
+  }
 
   bool found_end_of_line = false;
   uint32_t indent_length = 0;

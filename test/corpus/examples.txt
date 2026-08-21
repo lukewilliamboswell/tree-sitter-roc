@@ -965,29 +965,30 @@ record_update_2 = |person| {
               (then
                 then: (const
                   (string)))
-              (else_if
-                guard: (bin_op_expr
-                  part: (variable_expr
-                    (identifier))
-                  part: (operator)
-                  part: (const
-                    (int)))
-                (then
-                  then: (const
-                    (string))))
               (else
-                (function_call_pnc_expr
-                  caller: (field_access_expr
-                    target: (function_call_pnc_expr
+                (if_expr
+                  guard: (bin_op_expr
+                    part: (variable_expr
+                      (identifier))
+                    part: (operator)
+                    part: (const
+                      (int)))
+                  (then
+                    then: (const
+                      (string)))
+                  (else
+                    (function_call_pnc_expr
                       caller: (field_access_expr
-                        target: (variable_expr
-                          (identifier))
+                        target: (function_call_pnc_expr
+                          caller: (field_access_expr
+                            target: (variable_expr
+                              (identifier))
+                            (identifier))
+                          args: (variable_expr
+                            (identifier)))
                         (identifier))
                       args: (variable_expr
-                        (identifier)))
-                    (identifier))
-                  args: (variable_expr
-                    (identifier))))))))))
+                        (identifier))))))))))))
   (value_declaration
     (decl_left
       (identifier_pattern
