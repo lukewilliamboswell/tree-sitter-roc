@@ -18,14 +18,24 @@
 
 
 
-(argument_patterns                (identifier_pattern (identifier) @variable))
-(argument_patterns (_             (identifier_pattern (identifier) @variable)))
-(argument_patterns (_ (_          (identifier_pattern (identifier) @variable))))
-(argument_patterns (_ (_ (_       (identifier_pattern (identifier) @variable)))))
-(argument_patterns (_ (_ (_ (_    (identifier_pattern (identifier) @variable))))))
-(argument_patterns (_ (_ (_ (_ (_ (identifier_pattern (identifier) @variable)))))))
-(spread_pattern                                       (identifier) @variable)
-(match_branch pattern: (_       (identifier_pattern (identifier) @variable)))
+(argument_patterns                (identifier_pattern (identifier) @variable.parameter))
+(argument_patterns (_             (identifier_pattern (identifier) @variable.parameter)))
+(argument_patterns (_ (_          (identifier_pattern (identifier) @variable.parameter))))
+(argument_patterns (_ (_ (_       (identifier_pattern (identifier) @variable.parameter)))))
+(argument_patterns (_ (_ (_ (_    (identifier_pattern (identifier) @variable.parameter))))))
+(argument_patterns (_ (_ (_ (_ (_ (identifier_pattern (identifier) @variable.parameter)))))))
+(spread_pattern                                       (identifier) @variable.parameter)
+(match_branch pattern: (_       (identifier_pattern (identifier) @variable.parameter)))
+(tag_pattern
+  (_)*
+  (identifier_pattern (identifier) @variable.parameter))
+
+; Identifier patterns introduce bindings. Plain value declarations are
+; overridden back to variables below; function declarations are overridden by
+; the later, higher-priority function rule.
+(identifier_pattern (identifier) @variable.parameter)
+(value_declaration
+  (decl_left (identifier_pattern (identifier) @variable)))
 
 ; N/A
 ; @variable.other.member.private
@@ -102,6 +112,7 @@
 
 (string) @string
 (multiline_string) @string
+(const_pattern (string_pattern_capture)) @string
 
 
 
@@ -119,14 +130,9 @@
 
 
 [
-  (interpolation_char)
-] @punctuation.special
-
-[
   ","
   ":"
   (arrow)
-  (fat_arrow)
 ] @punctuation.delimiter
 
 [
@@ -149,16 +155,17 @@
   "."
   "&"
   ; "|" ; TODO: This conflicts with the `"|" @punctuation.bracket` query, so improve both.
-  "<-"
   "->"
   ".."
   "!"
   "*"
   "-"
   "^"
-  (wildcard_pattern)
+  (fat_arrow)
   (operator)
 ] @operator
+
+(wildcard_pattern) @variable.special
 
 
 
@@ -187,8 +194,10 @@
 ; TODO: Also implement this for `return`.
 [(suffix_operator ) "return"]@keyword
 
-; TODO: Implement this for `for` and `while`.
-; @keyword.control.repeat
+[
+  "for"
+  "while"
+] @keyword
 
 [
   "import"
@@ -208,11 +217,19 @@
   "app"
   (as)
   "as"
+  (break_expr)
+  "crash"
   "expect"
   "exposing"
+  "hosted"
+  "in"
   "module"
   "package"
+  "packages"
   "platform"
+  "provides"
+  "requires"
+  "targets"
   (to)
   "var"
   (where)
@@ -244,17 +261,19 @@
 
 
 [
-  (decimal)
   (float)
 ] @number
 
+((number_with_suffix) @number
+  (#match? @number "^[+-]?[0-9][0-9_]*(\\.[0-9]|[eE])"))
+
 [
-  (iint)
   (int)
-  (natural)
-  (uint)
   (xint)
 ] @number
+
+((number_with_suffix) @number
+  (#not-match? @number "^[+-]?[0-9][0-9_]*(\\.[0-9]|[eE])"))
 
 ; N/A
 ; @constant.numeric
@@ -262,6 +281,11 @@
 (escape_char) @string.escape
 
 (char) @string
+
+[
+  (literal_type_suffix)
+  (record_builder_suffix)
+] @type
 
 (tag_expr(tag (module) @variable.special "." (identifier)@boolean)
   (#eq? @boolean "True") (#eq? @variable.special "Bool"))
@@ -318,6 +342,26 @@
 ;;
 ;; Higher-priorty queries
 ;;
+
+(interpolation_char
+  "${" @punctuation.special
+  "}" @punctuation.special)
+(nominal_methods
+  ".{" @punctuation.bracket
+  "}" @punctuation.bracket)
+
+(alias_type_def
+  (apply_type (concrete_type) @type)
+  ":" @operator)
+(opaque_type_def
+  (apply_type (concrete_type) @type)
+  (double_colon) @operator)
+(nominal_type_def
+  (apply_type (concrete_type) @type)
+  (colon_equals) @operator)
+(string_pattern_capture
+  "${" @punctuation.special
+  "}" @punctuation.special)
 
 
 

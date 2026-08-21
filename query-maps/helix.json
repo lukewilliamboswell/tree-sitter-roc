@@ -61,6 +61,7 @@
     "type.roc-special.inferred": "type.roc-special.inferred",
     "variable": "variable",
     "variable.builtin": "variable.builtin",
+    "variable.builtin": "variable.builtin",
     "variable.other": "variable.other",
     "variable.other.member": "variable.other.member",
     "variable.other.member.private": "variable.other.member.private",

@@ -16,6 +16,7 @@
     "keyword.control": "keyword",
     "keyword.control.conditional": "keyword",
     "keyword.control.import": "keyword",
+    "keyword.control.repeat": "keyword",
     "keyword.control.return": "keyword",
     "keyword.operator": "operator",
     "module": "type",
@@ -39,9 +40,10 @@
     "type.parameter": "type",
     "type.roc-special.inferred": "type",
     "variable": "variable",
+    "variable.builtin": "variable.special",
     "variable.other.member": "property",
     "variable.other.member.roc-special.in-typedef": "property",
-    "variable.parameter": "variable"
+    "variable.parameter": "variable.parameter"
   },
   "indents": {
     "indent": "indent"
