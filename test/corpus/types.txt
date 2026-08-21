@@ -10,16 +10,16 @@ main =
 --------------------------------------------------------------------------------
 
 (file
+  (annotation_type_def
+    (annotation_pre_colon
+      (identifier))
+    (apply_type
+      (concrete_type)
+      type_args: (apply_type_arg
+        (record_type))
+      type_args: (apply_type_arg
+        (tags_type))))
   (value_declaration
-    (annotation_type_def
-      (annotation_pre_colon
-        (identifier))
-      (apply_type
-        (concrete_type)
-        type_args: (apply_type_arg
-          (record_type))
-        type_args: (apply_type_arg
-          (tags_type))))
     (decl_left
       (identifier_pattern
         (identifier)))
@@ -101,16 +101,16 @@ Color := [Red, Green, Blue].{
       (tag_type)
       (tag_type))
     (nominal_methods
+      (annotation_type_def
+        (annotation_pre_colon
+          (identifier))
+        (function_type
+          param: (apply_type
+            (concrete_type))
+          (arrow)
+          (apply_type
+            (concrete_type))))
       (value_declaration
-        (annotation_type_def
-          (annotation_pre_colon
-            (identifier))
-          (function_type
-            param: (apply_type
-              (concrete_type))
-            (arrow)
-            (apply_type
-              (concrete_type))))
         (decl_left
           (identifier_pattern
             (identifier)))
@@ -184,16 +184,16 @@ a=|a| b
   (expr_body
     (variable_expr
       (identifier)))
+  (annotation_type_def
+    (annotation_pre_colon
+      (identifier))
+    (function_type
+      param: (apply_type
+        (concrete_type))
+      (arrow)
+      (apply_type
+        (concrete_type))))
   (value_declaration
-    (annotation_type_def
-      (annotation_pre_colon
-        (identifier))
-      (function_type
-        param: (apply_type
-          (concrete_type))
-        (arrow)
-        (apply_type
-          (concrete_type))))
     (decl_left
       (identifier_pattern
         (identifier)))
@@ -424,25 +424,25 @@ helper1 = |x| x.to_str()
 ---
 
 (file
+  (annotation_type_def
+    (annotation_pre_colon
+      (identifier))
+    (where_implements
+      type: (function_type
+        param: (bound_variable)
+        (arrow)
+        (bound_variable))
+      (where)
+      implements: (static_dispatch_list
+        (static_dispatch
+          (static_dispatch_target
+            (bound_variable)
+            (identifier))
+          (function_type
+            param: (bound_variable)
+            (arrow)
+            (bound_variable))))))
   (value_declaration
-    (annotation_type_def
-      (annotation_pre_colon
-        (identifier))
-      (where_implements
-        type: (function_type
-          param: (bound_variable)
-          (arrow)
-          (bound_variable))
-        (where)
-        implements: (static_dispatch_list
-          (static_dispatch
-            (static_dispatch_target
-              (bound_variable)
-              (identifier))
-            (function_type
-              param: (bound_variable)
-              (arrow)
-              (bound_variable))))))
     (decl_left
       (identifier_pattern
         (identifier)))
@@ -469,39 +469,39 @@ multi_fun: b -> c where [b.b_thing : b, d -> c, b.str_thing : b, Str -> d]
 ---
 
 (file
+  (annotation_type_def
+    (annotation_pre_colon
+      (identifier))
+    (where_implements
+      type: (function_type
+        param: (bound_variable)
+        param: (parenthesized_type
+          (function_type
+            param: (apply_type
+              (concrete_type))
+            (arrow)
+            (apply_type
+              (concrete_type))))
+        (arrow)
+        (bound_variable))
+      (where)
+      implements: (static_dispatch_list
+        (static_dispatch
+          (static_dispatch_target
+            (bound_variable)
+            (identifier))
+          (function_type
+            param: (bound_variable)
+            param: (parenthesized_type
+              (function_type
+                param: (apply_type
+                  (concrete_type))
+                (arrow)
+                (apply_type
+                  (concrete_type))))
+            (arrow)
+            (bound_variable))))))
   (value_declaration
-    (annotation_type_def
-      (annotation_pre_colon
-        (identifier))
-      (where_implements
-        type: (function_type
-          param: (bound_variable)
-          param: (parenthesized_type
-            (function_type
-              param: (apply_type
-                (concrete_type))
-              (arrow)
-              (apply_type
-                (concrete_type))))
-          (arrow)
-          (bound_variable))
-        (where)
-        implements: (static_dispatch_list
-          (static_dispatch
-            (static_dispatch_target
-              (bound_variable)
-              (identifier))
-            (function_type
-              param: (bound_variable)
-              param: (parenthesized_type
-                (function_type
-                  param: (apply_type
-                    (concrete_type))
-                  (arrow)
-                  (apply_type
-                    (concrete_type))))
-              (arrow)
-              (bound_variable))))))
     (decl_left
       (identifier_pattern
         (identifier)))
@@ -579,25 +579,25 @@ helper1 = |x| x.to_str()
 ---
 
 (file
+  (annotation_type_def
+    (annotation_pre_colon
+      (identifier))
+    (where_implements
+      type: (function_type
+        param: (bound_variable)
+        (arrow)
+        (bound_variable))
+      (where)
+      implements: (static_dispatch_list
+        (static_dispatch
+          (static_dispatch_target
+            (bound_variable)
+            (identifier))
+          (function_type
+            param: (bound_variable)
+            (arrow)
+            (bound_variable))))))
   (value_declaration
-    (annotation_type_def
-      (annotation_pre_colon
-        (identifier))
-      (where_implements
-        type: (function_type
-          param: (bound_variable)
-          (arrow)
-          (bound_variable))
-        (where)
-        implements: (static_dispatch_list
-          (static_dispatch
-            (static_dispatch_target
-              (bound_variable)
-              (identifier))
-            (function_type
-              param: (bound_variable)
-              (arrow)
-              (bound_variable))))))
     (decl_left
       (identifier_pattern
         (identifier)))
@@ -623,39 +623,39 @@ multi_fun: b -> c where [b.b_thing : b, d -> c, b.str_thing : b, Str -> d]
 ---
 
 (file
+  (annotation_type_def
+    (annotation_pre_colon
+      (identifier))
+    (where_implements
+      type: (function_type
+        param: (bound_variable)
+        param: (parenthesized_type
+          (function_type
+            param: (apply_type
+              (concrete_type))
+            (arrow)
+            (apply_type
+              (concrete_type))))
+        (arrow)
+        (bound_variable))
+      (where)
+      implements: (static_dispatch_list
+        (static_dispatch
+          (static_dispatch_target
+            (bound_variable)
+            (identifier))
+          (function_type
+            param: (bound_variable)
+            param: (parenthesized_type
+              (function_type
+                param: (apply_type
+                  (concrete_type))
+                (arrow)
+                (apply_type
+                  (concrete_type))))
+            (arrow)
+            (bound_variable))))))
   (value_declaration
-    (annotation_type_def
-      (annotation_pre_colon
-        (identifier))
-      (where_implements
-        type: (function_type
-          param: (bound_variable)
-          param: (parenthesized_type
-            (function_type
-              param: (apply_type
-                (concrete_type))
-              (arrow)
-              (apply_type
-                (concrete_type))))
-          (arrow)
-          (bound_variable))
-        (where)
-        implements: (static_dispatch_list
-          (static_dispatch
-            (static_dispatch_target
-              (bound_variable)
-              (identifier))
-            (function_type
-              param: (bound_variable)
-              param: (parenthesized_type
-                (function_type
-                  param: (apply_type
-                    (concrete_type))
-                  (arrow)
-                  (apply_type
-                    (concrete_type))))
-              (arrow)
-              (bound_variable))))))
     (decl_left
       (identifier_pattern
         (identifier)))

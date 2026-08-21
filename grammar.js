@@ -56,44 +56,27 @@ module.exports = grammar({
   extras: ($) => [$.line_comment, $.doc_comment, /[ \s\f\uFEFF\u2060\u200B]|\\\r?n/],
 
   conflicts: ($) => [
-    // [$.function_call_expr],
-    //
-    //
-    // === conflicts that must exist:
-    //Expressions and patterns will always need to be in conflict because we except expressions in the top level so it's impossible to tell if a list is a list experssion or a list destructuring untill you get to the =
+    // A destructuring declaration has the same prefix as an expression until
+    // its `=`. Keep both parses alive rather than choosing with precedence.
     [$._atomic_pattern, $._primary_expr],
     [$._pattern, $._primary_expr],
-    [$.body_expression, $.record_expr],
     [$.tag_pattern, $.tag_expr],
     [$.nominal_record_expr, $.nominal_record_pattern],
-    //records are ambiguous with expresion bodies with parens this all makes sense:
+    [$.identifier_pattern, $.long_identifier],
+    [$.list_pattern, $.list_expr],
+
+    // Record shorthand, fields, and annotations reuse the same punctuation in
+    // expression and pattern contexts.
     [$.record_field_pattern, $.record_field_expr],
     [$.record_field_pattern, $.record_field_expr, $.annotation_pre_colon],
-
     [$.record_field_expr, $.annotation_pre_colon],
     [$.record_field_expr, $._atomic_pattern],
-    [$.expr_body, $._tuple_body],
-    [$._expr_inner, $.suffix_op_expr],
-    [$._postfix_expr, $._pipe_operand],
-    [$._atom_expr, $._pipe_operand],
-    [$.bin_op_expr, $.suffix_op_expr],
-    [$._pipe_operand, $.suffix_op_expr],
-    [$.bin_op_expr, $._operator_chain_ending_in_pipe_call],
-    [$.record_expr, $.body_expression, $.record_pattern],
-    [$._pattern, $._atomic_pattern],
-    [$._primary_expr, $._pattern, $._atomic_pattern],
+    [$.record_expr, $.record_pattern],
+
+    // These forms are distinguished only after their shared string or comma
+    // prefixes have already been consumed.
     [$.string, $._string_pattern_char],
     [$.function_type, $.record_function_type],
-
-    // ===== conflicts that maybe don't need to exist ====
-    [$._tags_only],
-    [$.identifier_pattern, $.long_identifier],
-
-    [$.list_pattern, $.list_expr],
-    [$._module_elem, $.value_declaration],
-    [$._module_elem, $.var_declaration],
-
-    // [$.record_type],
   ],
   words: ($) => /\s+/,
   word: ($) => $._lower_identifier,
@@ -126,43 +109,46 @@ module.exports = grammar({
         $.opaque_type_def,
         $.nominal_type_def,
         $.expect,
-        $.value_declaration,
-        $.var_declaration,
+        alias($._module_value_declaration, $.value_declaration),
+        alias($._module_var_declaration, $.var_declaration),
         $.expr_body,
         $.import_expr,
         $.import_file_expr,
       ),
 
     expect: ($) => prec(1, seq("expect", field("body", $.expr_body))),
-    value_declaration: ($) =>
-      seq(
-        //TODO i should be able to find a better solution that this silly /n
-        optional(seq($.annotation_type_def)),
 
-        // $._newline,
+    // Module annotations are siblings; blocks retain the legacy combined node
+    // until statement boundaries can be represented without extra GLR states.
+    _module_value_declaration: ($) =>
+      seq(
         alias($._assignment_pattern, $.decl_left),
         "=",
         field("body", alias($.expr_body_terminal, $.expr_body)),
       ),
 
-    // Mutable variable binding: `var $name = expr`
-    // Supports optional type annotations for parity with value declarations.
-    var_declaration: ($) =>
+    value_declaration: ($) => seq(optional($.annotation_type_def), $._module_value_declaration),
+
+    _module_var_declaration: ($) =>
       seq(
-        optional(seq($.annotation_type_def)),
         "var",
         field("name", $.identifier),
         "=",
         field("body", alias($.expr_body_terminal, $.expr_body)),
       ),
 
+    var_declaration: ($) => seq(optional($.annotation_type_def), $._module_var_declaration),
+
     /**
-      Expressions that can appear anywhere in the body of an expression.
-      */
+     * A braced block contains at least one declaration or expression. Empty
+     * braces are the empty record value, avoiding a record/block ambiguity.
+     */
     body_expression: ($) =>
       seq(
         "{",
-        repeat(choice($.value_declaration, $.var_declaration, $.local_type_binding, $._expr_inner)),
+        repeat1(
+          choice($.value_declaration, $.var_declaration, $.local_type_binding, $._expr_inner),
+        ),
         "}",
       ),
 
@@ -192,6 +178,12 @@ module.exports = grammar({
         $.nominal_record_expr,
         $.crash_expr,
         $.break_expr,
+        $.for_expr,
+        $.while_expr,
+        $.if_expr,
+        $.match_expr,
+        $.early_return_expr,
+        $.dbg_expr,
       ),
 
     // Calls, field/tuple accesses, and the immediate `?` suffix form one
@@ -208,18 +200,7 @@ module.exports = grammar({
 
     _atom_expr: ($) => choice($._postfix_expr, $.prefixed_expression),
 
-    _expr_inner: ($) =>
-      choice(
-        $.bin_op_expr,
-        $._atom_expr,
-        $.for_expr,
-        $.while_expr,
-        $.if_expr,
-        $.match_expr,
-        $.early_return_expr,
-        $.dbg_expr,
-        // $.chain_expr,
-      ),
+    _expr_inner: ($) => choice($.bin_op_expr, $._atom_expr),
 
     //orginally this had all operators, but it was making the parser almost twice as large so I cut the list down
     prefixed_expression: ($) =>
@@ -302,18 +283,9 @@ module.exports = grammar({
       ),
 
     nominal_constructor_expr: ($) =>
-      seq(
-        $.tag,
-        imm(".("),
-        choice(
-          seq(field("value", $.expr_body), optional(",")),
-          field("value", alias($._tuple_body, $.tuple_expr)),
-        ),
-        ")",
-      ),
+      seq($.tag, imm(".("), field("value", $._expression_args), ")"),
 
-    nominal_record_expr: ($) =>
-      seq($.tag, imm(".{"), sep_tail(choice($.record_field_expr, $.spread_expr), ","), "}"),
+    nominal_record_expr: ($) => seq($.tag, imm(".{"), optional($._record_expr_fields), "}"),
 
     // chain_expr: ($) =>
     //   prec(
@@ -329,13 +301,16 @@ module.exports = grammar({
         PREC.FUNC,
         seq(
           field("caller", $._postfix_expr),
-          seq(imm("("), field("args", sep_tail($._expr_inner, ",")), ")"),
+          imm("("),
+          optional(field("args", $._expression_args)),
+          ")",
         ),
       ),
 
-    operator_as_function_expr: ($) => $._operator_as_function_inner,
+    // Sharing this recursive list keeps it from expanding into each argument context.
+    _expression_args: ($) => sep1_tail($._expr_inner, ","),
 
-    _operator_as_function_inner: ($) =>
+    operator_as_function_expr: ($) =>
       seq("(", field("operator", $.operator_identifier), imm(")")),
 
     //OPERTATOR CALLING
@@ -346,77 +321,16 @@ module.exports = grammar({
           PREC.PART,
           seq(
             $._atom_expr,
-            prec.right(
-              repeat1(
-                choice(
-                  // Keep ordinary operands atomic so the enclosing repeat owns
-                  // subsequent operators. Match and if remain explicit RHS
-                  // forms without reopening the full expression hierarchy.
-                  seq($._non_pipe_operator, choice($._atom_expr, $.match_expr, $.if_expr)),
-                  seq(alias("|>", $.operator), $._pipe_operand),
-                ),
-              ),
-            ),
+            // Keeping operands atomic lets the enclosing repeat own
+            // subsequent operators without reopening the expression tier.
+            prec.right(repeat1(seq($.operator, $._atom_expr))),
           ),
         ),
       ),
+    // Suffixes bind to the nearest postfix expression. Pipelines use the same
+    // operand rule as every other operator rather than rebuilding this tier.
     suffix_op_expr: ($) =>
-      choice(
-        field("part", prec.left(PREC.PART + 1, seq($._postfix_expr, $.suffix_operator))),
-        prec.dynamic(
-          -1,
-          field("part", prec.left(0, seq(choice($.match_expr, $.if_expr), $.suffix_operator))),
-        ),
-        // The completed pipe is the target when its direct-call RHS is followed
-        // by `?`: `a |> f()?` means `(a |> f())?`. Naming the exact ending
-        // avoids making every binary expression compete as a suffix target.
-        field(
-          "part",
-          prec.left(
-            PREC.PART + 1,
-            seq(alias($._operator_chain_ending_in_pipe_call, $.bin_op_expr), $.suffix_operator),
-          ),
-        ),
-      ),
-
-    _operator_chain_ending_in_pipe_call: ($) =>
-      field(
-        "part",
-        prec(
-          PREC.PART,
-          seq(
-            $._atom_expr,
-            repeat(seq(alias("|>", $.operator), $._pipe_operand)),
-            alias("|>", $.operator),
-            $.function_call_pnc_expr,
-          ),
-        ),
-      ),
-    // A pipe RHS intentionally excludes only the shape `direct_call?`; that
-    // suffix belongs to the completed pipe. Other immediate suffixes, including
-    // `f?` and `f().field?`, stay inside the RHS postfix chain.
-    _pipe_operand: ($) =>
-      choice(
-        $._primary_expr,
-        $.field_access_expr,
-        $.tuple_access_expr,
-        $.function_call_pnc_expr,
-        alias($._pipe_non_call_suffix_expr, $.suffix_op_expr),
-        $.prefixed_expression,
-        $.match_expr,
-        $.if_expr,
-      ),
-    _pipe_non_call_suffix_expr: ($) =>
-      field(
-        "part",
-        prec.left(
-          PREC.PART + 1,
-          seq(
-            choice($._primary_expr, $.field_access_expr, $.tuple_access_expr, $.suffix_op_expr),
-            $.suffix_operator,
-          ),
-        ),
-      ),
+      field("part", prec.left(PREC.PART + 1, seq($._postfix_expr, $.suffix_operator))),
     //PATTERN MATCHING
     _match_start: ($) => seq(alias("match", $.match), $._expr_inner),
 
@@ -450,10 +364,13 @@ module.exports = grammar({
     record_expr: ($) =>
       seq(
         "{",
-        sep_tail(choice($.record_field_expr, $.spread_expr), ","),
+        optional($._record_expr_fields),
         "}",
         optional(field("builder", $.record_builder_suffix)),
       ),
+
+    // Sharing this list avoids duplicating its GLR states for nominal records.
+    _record_expr_fields: ($) => sep1_tail(choice($.record_field_expr, $.spread_expr), ","),
 
     record_builder_suffix: ($) =>
       imm(/\.[\p{Lu}][\p{XID_Continue}]*(\.[\p{Lu}][\p{XID_Continue}]*)*/),
@@ -498,17 +415,11 @@ module.exports = grammar({
 
     identifier_pattern: ($) => prec(PREC.FIELD_ACCESS_START + 1, $.identifier),
     nominal_constructor_pattern: ($) =>
-      seq(
-        $.tag,
-        imm(".("),
-        choice(
-          seq(field("value", $._pattern), optional(",")),
-          field("value", alias($._tuple_pattern_body, $.tuple_pattern)),
-        ),
-        ")",
-      ),
-    nominal_record_pattern: ($) =>
-      seq($.tag, imm(".{"), sep_tail(choice($.record_field_pattern, $.spread_pattern), ","), "}"),
+      seq($.tag, imm(".("), field("value", $._nominal_pattern_payload), ")"),
+
+    _nominal_pattern_payload: ($) => sep1_tail($._pattern, ","),
+
+    nominal_record_pattern: ($) => seq($.tag, imm(".{"), optional($._record_pattern_fields), "}"),
     cons_pattern: ($) => prec.left(0, seq($._pattern, "::", $._pattern)),
     disjunct_pattern: ($) => prec.left(0, seq($._pattern, "|", $._pattern)),
     conjunct_pattern: ($) => prec.left(0, seq($._pattern, "&", $._pattern)),
@@ -519,15 +430,20 @@ module.exports = grammar({
 
     tag_pattern: ($) =>
       prec.left(
-        seq($.tag, optional(seq("(", field("args", sep_tail($._atomic_pattern, ",")), ")"))),
+        seq(
+          $.tag,
+          optional(seq("(", optional(field("args", $._pattern_args)), ")")),
+        ),
       ),
     tuple_pattern: ($) => seq("(", $._tuple_pattern_body, ")"),
 
     _tuple_pattern_body: ($) =>
       seq($._atomic_pattern, ",", optional(sep1_tail($._atomic_pattern, ","))),
 
-    argument_patterns: ($) =>
-      seq($._atomic_pattern, repeat(seq(",", $._atomic_pattern)), optional(",")),
+    argument_patterns: ($) => $._pattern_args,
+
+    // Tags and lambdas use the same atomic, trailing-comma argument syntax.
+    _pattern_args: ($) => sep1_tail($._atomic_pattern, ","),
     _atomic_pattern: ($) =>
       choice(
         "null",
@@ -564,20 +480,11 @@ module.exports = grammar({
     list_pattern: ($) =>
       choice(seq("[", "]"), seq("[", $._atomic_pattern, repeat(seq(",", $._atomic_pattern)), "]")),
 
-    record_pattern: ($) =>
-      seq(
-        "{",
-        sep_tail(
-          choice(
-            // $.record_field_type,
-            $.spread_pattern,
-            $.record_field_pattern,
-            // $.identifier_pattern,
-          ),
-          ",",
-        ),
-        "}",
-      ),
+    record_pattern: ($) => seq("{", optional($._record_pattern_fields), "}"),
+
+    // Sharing this list avoids duplicating its GLR states for nominal records.
+    _record_pattern_fields: ($) =>
+      sep1_tail(choice($.spread_pattern, $.record_field_pattern), ","),
 
     record_field_pattern: ($) => seq($.field_name, optional(seq(":", $._atomic_pattern))),
     //###--------####
@@ -756,12 +663,18 @@ module.exports = grammar({
     function_type: ($) =>
       seq(
         choice(seq("(", ")"), sep1(field("param", $._atomic_type), ",")),
-        choice($.arrow, $.fat_arrow),
-        $._atomic_type,
+        $._function_type_result,
       ),
 
+    // Both function forms share the arrow and result after their parameter lists diverge.
+    _function_type_result: ($) => seq(choice($.arrow, $.fat_arrow), $._atomic_type),
+
     parenthesized_type: ($) => seq("(", $._type_annotation, ")"),
-    tuple_type: ($) => seq("(", $._type_annotation, ",", sep1_tail($._type_annotation, ","), ")"),
+    tuple_type: ($) => seq("(", $._tuple_type_body, ")"),
+
+    // Keep recursive element annotations out of each tuple-type context.
+    _tuple_type_body: ($) =>
+      seq($._type_annotation, ",", sep1_tail($._type_annotation, ",")),
 
     // Static dispatch constraints: `Type where [a.to_str : a -> b]`.
     // This attaches a constraint list to any type annotation or function type.
@@ -774,15 +687,19 @@ module.exports = grammar({
         ),
       ),
 
-    static_dispatch_list: ($) => seq("[", sep_tail($.static_dispatch, ","), "]"),
+    static_dispatch_list: ($) => seq("[", optional($._static_dispatch_entries), "]"),
+
+    // Keep recursive constraints out of each surrounding type context.
+    _static_dispatch_entries: ($) => sep1_tail($.static_dispatch, ","),
 
     static_dispatch: ($) => seq($.static_dispatch_target, ":", $.function_type),
 
     static_dispatch_target: ($) => seq($.bound_variable, ".", $.identifier),
     spread_type: ($) => seq("..", optional($.type_variable)),
-    tags_type: ($) => seq("[", sep_tail(choice($._tags_only, $.spread_type), ","), "]"),
+    tags_type: ($) => seq("[", optional($._tag_type_entries), "]"),
 
-    _tags_only: ($) => seq(sep1(choice($.tag_type), ",")),
+    // Isolate recursive tag arguments from each surrounding type context.
+    _tag_type_entries: ($) => sep1_tail(choice($.tag_type, $.spread_type), ","),
 
     tag_type: ($) => seq(field("name", $._upper_identifier), optional($._apply_type_args)),
     type_variable: ($) => choice($.bound_variable),
@@ -804,14 +721,20 @@ module.exports = grammar({
     _apply_type_args: ($) =>
       field(
         "type_args",
-        prec.right(seq(imm("("), prec.right(PREC.ARGS, sep1_tail($.apply_type_arg, ",")), ")")),
+        prec.right(seq(imm("("), prec.right(PREC.ARGS, $._apply_type_arg_list), ")")),
       ),
+
+    // Keep recursive type arguments out of each applied-type context.
+    _apply_type_arg_list: ($) => sep1_tail($.apply_type_arg, ","),
 
     apply_type_arg: ($) => prec.left(choice($._atomic_type, $.function_type)),
 
     typed_ident: ($) => seq($.identifier, ":", $._type_annotation),
 
-    record_type: ($) => seq("{", sep_tail(choice($.record_field_type, $.spread_type), ","), "}"),
+    record_type: ($) => seq("{", optional($._record_type_fields), "}"),
+
+    // Isolate recursive field annotations from each surrounding type context.
+    _record_type_fields: ($) => sep1_tail(choice($.record_field_type, $.spread_type), ","),
 
     record_field_type: ($) =>
       choice(
@@ -836,8 +759,7 @@ module.exports = grammar({
     record_function_type: ($) =>
       seq(
         choice(seq("(", ")"), sep1(field("param", $._atomic_type), $._record_function_param_comma)),
-        choice($.arrow, $.fat_arrow),
-        $._atomic_type,
+        $._function_type_result,
       ),
     _record_type_field_name: ($) => choice($.field_name, alias("_", $.field_name)),
     /** can be used to make tag unions or records open*/
@@ -949,9 +871,15 @@ module.exports = grammar({
     field_name: ($) => alias($.identifier, $.field_name),
 
     long_identifier: ($) =>
-      prec.right(PREC.FIELD_ACCESS_START + 1, seq(repeat(seq($.module, imm("."))), $.identifier)),
+      prec.right(
+        PREC.FIELD_ACCESS_START + 1,
+        seq(optional($._module_prefix), $.identifier),
+      ),
     _long_upper_identifier: ($) =>
-      prec.right(seq(repeat(seq($.module, imm("."))), alias($._upper_identifier, $.identifier))),
+      prec.right(seq(optional($._module_prefix), alias($._upper_identifier, $.identifier))),
+
+    // Value and tag paths share the same qualified module prefix.
+    _module_prefix: ($) => repeat1(seq($.module, imm("."))),
     ident: ($) => choice($.identifier, $.module),
 
     identifier: ($) =>

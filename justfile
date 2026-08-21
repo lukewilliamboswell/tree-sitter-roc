@@ -13,6 +13,10 @@ test-update:
 generate-check:
     tree-sitter generate && git diff --exit-code src/parser.c src/grammar.json src/node-types.json
 
+# fail when generated parser complexity exceeds the reviewed budget
+parser-metrics-check:
+    node tools/check-parser-metrics.js
+
 # generate editor-specific queries from mappings
 queries-generate:
     node tools/template-queries.js --queries-dir queries
@@ -21,9 +25,9 @@ queries-generate:
 queries-check:
     node tools/template-queries.js --queries-dir queries && git diff --exit-code queries-generated
 
-# run CI checks: generate-check, tests, and queries-check
+# run CI checks: generation, parser metrics, tests, and queries
 ci:
-    just generate-check && tree-sitter test && just queries-check
+    just generate-check && just parser-metrics-check && tree-sitter test && just queries-check
 
 #generate and build wasm
 build-all:

@@ -69,12 +69,12 @@ x =
 --------------------------------------------------------------------------------
 
 (file
+  (annotation_type_def
+    (annotation_pre_colon
+      (identifier))
+    (apply_type
+      (concrete_type)))
   (value_declaration
-    (annotation_type_def
-      (annotation_pre_colon
-        (identifier))
-      (apply_type
-        (concrete_type)))
     (decl_left
       (identifier_pattern
         (identifier)))
@@ -234,12 +234,12 @@ var a= ""
 --------------------------------------------------------------------------------
 
 (file
+  (annotation_type_def
+    (annotation_pre_colon
+      (identifier))
+    (apply_type
+      (concrete_type)))
   (var_declaration
-    (annotation_type_def
-      (annotation_pre_colon
-        (identifier))
-      (apply_type
-        (concrete_type)))
     name: (identifier)
     body: (expr_body
       (const
@@ -253,12 +253,12 @@ var $a= ""
 --------------------------------------------------------------------------------
 
 (file
+  (annotation_type_def
+    (annotation_pre_colon
+      (identifier))
+    (apply_type
+      (concrete_type)))
   (var_declaration
-    (annotation_type_def
-      (annotation_pre_colon
-        (identifier))
-      (apply_type
-        (concrete_type)))
     name: (identifier)
     body: (expr_body
       (const

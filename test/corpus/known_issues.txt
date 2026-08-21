@@ -173,6 +173,7 @@ nominal record and tuple patterns
 result = match value {
     Range.{ len, .. } => len
     Foo.(x, y) => x
+    Foo.(x, y,) => y
     Foo.(x,) => x
 }
 
@@ -203,11 +204,10 @@ result = match value {
           (nominal_constructor_pattern
             (tag
               (identifier))
-            (tuple_pattern
-              (identifier_pattern
-                (identifier))
-              (identifier_pattern
-                (identifier))))
+            (identifier_pattern
+              (identifier))
+            (identifier_pattern
+              (identifier)))
           (fat_arrow)
           (expr_body
             (variable_expr
@@ -216,9 +216,20 @@ result = match value {
           (nominal_constructor_pattern
             (tag
               (identifier))
-            (tuple_pattern
-              (identifier_pattern
-                (identifier))))
+            (identifier_pattern
+              (identifier))
+            (identifier_pattern
+              (identifier)))
+          (fat_arrow)
+          (expr_body
+            (variable_expr
+              (identifier))))
+        (match_branch
+          (nominal_constructor_pattern
+            (tag
+              (identifier))
+            (identifier_pattern
+              (identifier)))
           (fat_arrow)
           (expr_body
             (variable_expr

@@ -152,16 +152,16 @@ Color := [Red, Green, Blue].{
       (tag_type)
       (tag_type))
     (nominal_methods
+      (annotation_type_def
+        (annotation_pre_colon
+          (identifier))
+        (function_type
+          param: (apply_type
+            (concrete_type))
+          (arrow)
+          (apply_type
+            (concrete_type))))
       (value_declaration
-        (annotation_type_def
-          (annotation_pre_colon
-            (identifier))
-          (function_type
-            param: (apply_type
-              (concrete_type))
-            (arrow)
-            (apply_type
-              (concrete_type))))
         (decl_left
           (identifier_pattern
             (identifier)))
@@ -398,9 +398,8 @@ qualified = Module.Name.(value)
           (nominal_constructor_expr
             (tag
               (identifier))
-            (expr_body
-              (variable_expr
-                (identifier))))))))
+            (variable_expr
+              (identifier)))))))
   (value_declaration
     (decl_left
       (identifier_pattern
@@ -425,9 +424,8 @@ qualified = Module.Name.(value)
         (tag
           (module)
           (identifier))
-        (expr_body
-          (variable_expr
-            (identifier)))))))
+        (variable_expr
+          (identifier))))))
 
 ================================================================================
 suffix record builder
@@ -499,7 +497,7 @@ loop = || {
                       (break_expr)))
                   (else
                     (body_expression
-                      (body_expression))))))))))))
+                      (record_expr))))))))))))
 
 ================================================================================
 tuple positional access
@@ -654,7 +652,7 @@ guard = |condition| {
               (tag_expr
                 (tag
                   (identifier)))
-              (body_expression))))))))
+              (record_expr))))))))
 
 ================================================================================
 function type as type argument
@@ -833,7 +831,7 @@ main! = |_| {
                 (identifier_pattern
                   (identifier)))
               (expr_body
-                (body_expression)))
+                (record_expr)))
             (value_declaration
               (decl_left
                 (identifier_pattern
@@ -861,7 +859,7 @@ main! = |_| {
               (tag_expr
                 (tag
                   (identifier)))
-              (body_expression))))))))
+              (record_expr))))))))
 
 ================================================================================
 nominal record destructuring
@@ -891,7 +889,9 @@ get_x = |Stack.{ x }| x
 ================================================================================
 nominal tuple backing constructor
 ================================================================================
+single = Single.(1,)
 pair = Pair.(1, "two")
+triple = Triple.(1, "two", True,)
 --------------------------------------------------------------------------------
 
 (file
@@ -903,11 +903,35 @@ pair = Pair.(1, "two")
       (nominal_constructor_expr
         (tag
           (identifier))
-        (tuple_expr
-          (const
-            (int))
-          (const
-            (string)))))))
+        (const
+          (int)))))
+  (value_declaration
+    (decl_left
+      (identifier_pattern
+        (identifier)))
+    (expr_body
+      (nominal_constructor_expr
+        (tag
+          (identifier))
+        (const
+          (int))
+        (const
+          (string)))))
+  (value_declaration
+    (decl_left
+      (identifier_pattern
+        (identifier)))
+    (expr_body
+      (nominal_constructor_expr
+        (tag
+          (identifier))
+        (const
+          (int))
+        (const
+          (string))
+        (tag_expr
+          (tag
+            (identifier)))))))
 
 ================================================================================
 spaced try handler and immediate suffix
@@ -1318,7 +1342,7 @@ main! = || {}
     (expr_body
       (anon_fun_expr
         (expr_body
-          (body_expression))))))
+          (record_expr))))))
 
 ================================================================================
 modern identifier and lambda patterns
@@ -1329,16 +1353,16 @@ step = |var $state, value,| value
 --------------------------------------------------------------------------------
 
 (file
+  (annotation_type_def
+    (annotation_pre_colon
+      (identifier))
+    (function_type
+      (apply_type
+        (concrete_type))
+      (fat_arrow)
+      (apply_type
+        (concrete_type))))
   (value_declaration
-    (annotation_type_def
-      (annotation_pre_colon
-        (identifier))
-      (function_type
-        (apply_type
-          (concrete_type))
-        (fat_arrow)
-        (apply_type
-          (concrete_type))))
     (decl_left
       (identifier_pattern
         (identifier)))
@@ -1495,12 +1519,16 @@ expect !Conformance.claims_for_profile(Standard).static_pdf_a4
           (identifier))))))
 
 ================================================================================
-pipe question suffix precedence
+postfix suffixes in pipelines
 ================================================================================
+direct_call = f()
+fallible_call = f()?
 with_call = a |> f()?
 without_call = a |> f?
 ordinary_call = a + f()?
 pipe_chain = a |> f()? |> g()?
+mixed_pipe_chain = a |> f()? |> g?
+field_suffix = a |> f().field?
 --------------------------------------------------------------------------------
 
 (file
@@ -1509,15 +1537,33 @@ pipe_chain = a |> f()? |> g()?
       (identifier_pattern
         (identifier)))
     (expr_body
+      (function_call_pnc_expr
+        (variable_expr
+          (identifier)))))
+  (value_declaration
+    (decl_left
+      (identifier_pattern
+        (identifier)))
+    (expr_body
       (suffix_op_expr
-        (bin_op_expr
+        (function_call_pnc_expr
           (variable_expr
-            (identifier))
-          (operator)
+            (identifier)))
+        (suffix_operator))))
+  (value_declaration
+    (decl_left
+      (identifier_pattern
+        (identifier)))
+    (expr_body
+      (bin_op_expr
+        (variable_expr
+          (identifier))
+        (operator)
+        (suffix_op_expr
           (function_call_pnc_expr
             (variable_expr
-              (identifier))))
-        (suffix_operator))))
+              (identifier)))
+          (suffix_operator)))))
   (value_declaration
     (decl_left
       (identifier_pattern
@@ -1550,22 +1596,56 @@ pipe_chain = a |> f()? |> g()?
       (identifier_pattern
         (identifier)))
     (expr_body
-      (suffix_op_expr
-        (bin_op_expr
-          (suffix_op_expr
-            (bin_op_expr
-              (variable_expr
-                (identifier))
-              (operator)
-              (function_call_pnc_expr
-                (variable_expr
-                  (identifier))))
-            (suffix_operator))
-          (operator)
+      (bin_op_expr
+        (variable_expr
+          (identifier))
+        (operator)
+        (suffix_op_expr
           (function_call_pnc_expr
             (variable_expr
-              (identifier))))
-        (suffix_operator)))))
+              (identifier)))
+          (suffix_operator))
+        (operator)
+        (suffix_op_expr
+          (function_call_pnc_expr
+            (variable_expr
+              (identifier)))
+          (suffix_operator)))))
+  (value_declaration
+    (decl_left
+      (identifier_pattern
+        (identifier)))
+    (expr_body
+      (bin_op_expr
+        (variable_expr
+          (identifier))
+        (operator)
+        (suffix_op_expr
+          (function_call_pnc_expr
+            (variable_expr
+              (identifier)))
+          (suffix_operator))
+        (operator)
+        (suffix_op_expr
+          (variable_expr
+            (identifier))
+          (suffix_operator)))))
+  (value_declaration
+    (decl_left
+      (identifier_pattern
+        (identifier)))
+    (expr_body
+      (bin_op_expr
+        (variable_expr
+          (identifier))
+        (operator)
+        (suffix_op_expr
+          (field_access_expr
+            (function_call_pnc_expr
+              (variable_expr
+                (identifier)))
+            (identifier))
+          (suffix_operator))))))
 
 ================================================================================
 mixed postfix chain

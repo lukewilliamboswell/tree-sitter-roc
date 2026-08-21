@@ -387,17 +387,17 @@ record_update_2 = |person| {
                     (variable_expr
                       (identifier)))))
               (line_comment)))))))
+  (annotation_type_def
+    (annotation_pre_colon
+      (identifier))
+    (function_type
+      param: (apply_type
+        (concrete_type))
+      param: (apply_type
+        (concrete_type))
+      (arrow)
+      (inferred)))
   (value_declaration
-    (annotation_type_def
-      (annotation_pre_colon
-        (identifier))
-      (function_type
-        param: (apply_type
-          (concrete_type))
-        param: (apply_type
-          (concrete_type))
-        (arrow)
-        (inferred)))
     (decl_left
       (identifier_pattern
         (identifier)))
@@ -434,18 +434,18 @@ record_update_2 = |person| {
                 (prefixed_expression
                   (variable_expr
                     (identifier))))))))))
+  (annotation_type_def
+    (annotation_pre_colon
+      (identifier))
+    (function_type
+      param: (tags_type
+        (tag_type)
+        (tag_type)
+        (tag_type))
+      (arrow)
+      (apply_type
+        (concrete_type))))
   (value_declaration
-    (annotation_type_def
-      (annotation_pre_colon
-        (identifier))
-      (function_type
-        param: (tags_type
-          (tag_type)
-          (tag_type)
-          (tag_type))
-        (arrow)
-        (apply_type
-          (concrete_type))))
     (decl_left
       (identifier_pattern
         (identifier)))
@@ -484,19 +484,19 @@ record_update_2 = |person| {
                 expr: (expr_body
                   (const
                     (string))))))))))
+  (annotation_type_def
+    (annotation_pre_colon
+      (identifier))
+    (function_type
+      param: (apply_type
+        (concrete_type)
+        type_args: (apply_type_arg
+          (apply_type
+            (concrete_type))))
+      (arrow)
+      (apply_type
+        (concrete_type))))
   (value_declaration
-    (annotation_type_def
-      (annotation_pre_colon
-        (identifier))
-      (function_type
-        param: (apply_type
-          (concrete_type)
-          type_args: (apply_type_arg
-            (apply_type
-              (concrete_type))))
-        (arrow)
-        (apply_type
-          (concrete_type))))
     (decl_left
       (identifier_pattern
         (identifier)))
@@ -596,25 +596,25 @@ record_update_2 = |person| {
                 expr: (expr_body
                   (const
                     (int))))))))))
+  (annotation_type_def
+    (annotation_pre_colon
+      (identifier))
+    (function_type
+      param: (apply_type
+        (concrete_type)
+        type_args: (apply_type_arg
+          (record_type))
+        type_args: (apply_type_arg
+          (tags_type
+            (tag_type
+              type_args: (apply_type_arg
+                (apply_type
+                  (concrete_type))))
+            (tag_type))))
+      (arrow)
+      (apply_type
+        (concrete_type))))
   (value_declaration
-    (annotation_type_def
-      (annotation_pre_colon
-        (identifier))
-      (function_type
-        param: (apply_type
-          (concrete_type)
-          type_args: (apply_type_arg
-            (record_type))
-          type_args: (apply_type_arg
-            (tags_type
-              (tag_type
-                type_args: (apply_type_arg
-                  (apply_type
-                    (concrete_type))))
-              (tag_type))))
-        (arrow)
-        (apply_type
-          (concrete_type))))
     (decl_left
       (identifier_pattern
         (identifier)))
@@ -667,16 +667,16 @@ record_update_2 = |person| {
               expr: (expr_body
                 (const
                   (string)))))))))
+  (annotation_type_def
+    (annotation_pre_colon
+      (identifier))
+    (function_type
+      param: (apply_type
+        (concrete_type))
+      (arrow)
+      (apply_type
+        (concrete_type))))
   (value_declaration
-    (annotation_type_def
-      (annotation_pre_colon
-        (identifier))
-      (function_type
-        param: (apply_type
-          (concrete_type))
-        (arrow)
-        (apply_type
-          (concrete_type))))
     (decl_left
       (identifier_pattern
         (identifier)))
@@ -877,16 +877,16 @@ record_update_2 = |person| {
             (line_comment)
             (variable_expr
               (identifier)))))))
+  (annotation_type_def
+    (annotation_pre_colon
+      (identifier))
+    (function_type
+      param: (apply_type
+        (concrete_type))
+      (arrow)
+      (apply_type
+        (concrete_type))))
   (value_declaration
-    (annotation_type_def
-      (annotation_pre_colon
-        (identifier))
-      (function_type
-        param: (apply_type
-          (concrete_type))
-        (arrow)
-        (apply_type
-          (concrete_type))))
     (decl_left
       (identifier_pattern
         (identifier)))
@@ -1743,7 +1743,7 @@ expect Bool.True != Bool.False
                   caller: (tag_expr
                     (tag
                       (identifier)))
-                  args: (body_expression))))
+                  args: (record_expr))))
             (function_call_pnc_expr
               caller: (variable_expr
                 (module)
