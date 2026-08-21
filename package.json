@@ -2,10 +2,21 @@
   "name": "tree-sitter-roc",
   "version": "1.0.0",
   "description": "",
+  "license": "ISC",
+  "author": "",
+  "files": [
+    "grammar.js",
+    "binding.gyp",
+    "prebuilds/**",
+    "bindings/node/*",
+    "queries/*",
+    "src/**"
+  ],
   "main": "grammar.js",
   "types": "bindings/node",
   "scripts": {
     "test": "npm run ts:test",
+    "format": "oxfmt",
     "install": "node-gyp-build",
     "prebuildify": "prebuildify --napi --strip",
     "template-queries": "node tools/template-queries.js",
@@ -16,11 +27,14 @@
     "queries:check": "node tools/template-queries.js --queries-dir queries && git diff --exit-code queries-generated",
     "ci": "npm run ts:generate-check && npm run ts:test && npm run queries:check"
   },
-  "author": "",
-  "license": "ISC",
   "dependencies": {
     "node-addon-api": "^7.1.0",
     "node-gyp-build": "^4.8.0"
+  },
+  "devDependencies": {
+    "oxfmt": "^0.64.0",
+    "prebuildify": "^6.0.0",
+    "tree-sitter-cli": "0.25.10"
   },
   "peerDependencies": {
     "tree-sitter": "^0.25.0"
@@ -29,17 +43,5 @@
     "tree_sitter": {
       "optional": true
     }
-  },
-  "devDependencies": {
-    "tree-sitter-cli": "0.25.10",
-    "prebuildify": "^6.0.0"
-  },
-  "files": [
-    "grammar.js",
-    "binding.gyp",
-    "prebuilds/**",
-    "bindings/node/*",
-    "queries/*",
-    "src/**"
-  ]
+  }
 }

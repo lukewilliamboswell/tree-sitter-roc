@@ -11,7 +11,14 @@ const path = require("path");
 
 const DEFAULT_CONFIG_DIR = "query-maps";
 const DEFAULT_OUT_DIR = "queries-generated";
-const DEFAULT_SKIP_DIRS = new Set([".git", "node_modules", "build", "target", "dist", "queries-generated"]);
+const DEFAULT_SKIP_DIRS = new Set([
+  ".git",
+  "node_modules",
+  "build",
+  "target",
+  "dist",
+  "queries-generated",
+]);
 
 function parseArgs(argv) {
   const args = {
@@ -169,9 +176,7 @@ function assertMappingComplete(mapping, captures, contextLabel) {
 
   if (missing.length > 0) {
     missing.sort();
-    throw new Error(
-      `Missing mappings for ${contextLabel}: ${missing.join(", ")}`
-    );
+    throw new Error(`Missing mappings for ${contextLabel}: ${missing.join(", ")}`);
   }
 }
 
@@ -192,7 +197,9 @@ async function main() {
     throw new Error(`No JSON configs found in ${configDir}`);
   }
 
-  let queriesDirs = args.queriesDirs.map((dir) => (path.isAbsolute(dir) ? dir : path.join(rootDir, dir)));
+  let queriesDirs = args.queriesDirs.map((dir) =>
+    path.isAbsolute(dir) ? dir : path.join(rootDir, dir),
+  );
   if (queriesDirs.length === 0) {
     const defaultQueriesDir = path.join(rootDir, "queries");
     try {

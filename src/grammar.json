@@ -4469,59 +4469,19 @@
     }
   ],
   "conflicts": [
-    [
-      "_pattern",
-      "_atom_expr"
-    ],
-    [
-      "_atomic_pattern",
-      "_atom_expr"
-    ],
-    [
-      "body_expression",
-      "record_expr"
-    ],
-    [
-      "tag_pattern",
-      "tag_expr"
-    ],
-    [
-      "record_field_pattern",
-      "record_field_expr"
-    ],
-    [
-      "record_field_pattern",
-      "record_field_expr",
-      "annotation_pre_colon"
-    ],
-    [
-      "record_field_expr",
-      "annotation_pre_colon"
-    ],
-    [
-      "record_expr",
-      "body_expression",
-      "record_pattern"
-    ],
-    [
-      "_tags_only"
-    ],
-    [
-      "identifier_pattern",
-      "long_identifier"
-    ],
-    [
-      "list_pattern",
-      "list_expr"
-    ],
-    [
-      "_module_elem",
-      "value_declaration"
-    ],
-    [
-      "_module_elem",
-      "var_declaration"
-    ]
+    ["_pattern", "_atom_expr"],
+    ["_atomic_pattern", "_atom_expr"],
+    ["body_expression", "record_expr"],
+    ["tag_pattern", "tag_expr"],
+    ["record_field_pattern", "record_field_expr"],
+    ["record_field_pattern", "record_field_expr", "annotation_pre_colon"],
+    ["record_field_expr", "annotation_pre_colon"],
+    ["record_expr", "body_expression", "record_pattern"],
+    ["_tags_only"],
+    ["identifier_pattern", "long_identifier"],
+    ["list_pattern", "list_expr"],
+    ["_module_elem", "value_declaration"],
+    ["_module_elem", "var_declaration"]
   ],
   "precedences": [],
   "externals": [

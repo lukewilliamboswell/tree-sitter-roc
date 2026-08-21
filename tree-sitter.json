@@ -5,18 +5,10 @@
       "camelcase": "Roc",
       "scope": "source.roc",
       "path": ".",
-      "file-types": [
-        "roc"
-      ],
-      "highlights": [
-        "queries/highlights.scm"
-      ],
-      "locals": [
-        "queries/locals.scm"
-      ],
-      "tags": [
-        "queries/tags.scm"
-      ],
+      "file-types": ["roc"],
+      "highlights": ["queries/highlights.scm"],
+      "locals": ["queries/locals.scm"],
+      "tags": ["queries/tags.scm"],
       "injection-regex": "^(roc)$"
     }
   ],
