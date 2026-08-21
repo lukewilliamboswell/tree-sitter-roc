@@ -247,6 +247,10 @@
 
 (value_declaration (decl_left (identifier_pattern  (identifier) @function))
   (expr_body (anon_fun_expr)))
+(value_declaration (decl_left (identifier_pattern  (identifier) @function))
+  (expr_body
+    (function_call_pnc_expr
+      caller: (anon_fun_expr))))
 (function_call_pnc_expr caller: (variable_expr     (identifier) @function))
 (function_call_pnc_expr caller: (field_access_expr (identifier) @function .))
 (bin_op_expr (operator "->") (variable_expr        (identifier) @function))
